@@ -34,6 +34,18 @@ class Platform(sprite.Sprite):
         self.rect = Rect(x, y, CELL_SIZE, CELL_SIZE)
 
 
+class Secret_Platform(Platform):
+    def __init__(self, x, y, image=load_image('block.png')):
+        super().__init__(x, y, image)
+        self.img = pygame.transform.scale(image, (CELL_SIZE, CELL_SIZE))
+
+    def hide(self):
+        self.image = pygame.transform.scale(self.image, (0, 0))
+
+    def show(self):
+        self.image = self.img
+
+
 class BlockDie(Platform):
     def __init__(self, x, y, image):
         Platform.__init__(self, x, y, image)
@@ -51,7 +63,7 @@ class BlockTeleport(Platform):
         self.boltAnim.play()
 
     def update(self, *args):
-        self.image.fill(GREEN)
+        self.image.fill(WHITE)
         self.boltAnim.blit(self.image, (0, 0))
 
 
@@ -137,6 +149,10 @@ class Hero(sprite.Sprite):
     def collide(self, xvel, yvel, platforms):
         for p in platforms:
             if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
+                if isinstance(p, Secret_Platform):  # если пересакаемый блок - Secret_Platform
+                    p.hide()  # умираем
+                    continue
+
                 if xvel > 0:  # если движется вправо
                     self.rect.right = p.rect.left  # то не движется вправо
 
@@ -152,11 +168,14 @@ class Hero(sprite.Sprite):
                     self.rect.top = p.rect.bottom  # то не движется вверх
                     self.yvel = 0  # и энергия прыжка пропадает
 
-                if isinstance(p, BlockDie):  # если пересакаемый блок - blocks.BlockDie
+                if isinstance(p, BlockDie):  # если пересакаемый блок - BlockDie
                     self.die()  # умираем
 
                 elif isinstance(p, BlockTeleport):
                     self.teleporting(p.goX, p.goY)
+            else:
+                if isinstance(p, Secret_Platform):
+                    p.show()
 
     def die(self):
         time.wait(500)
@@ -224,7 +243,8 @@ if __name__ == '__main__':
                 platforms.append(pt)
             if level[y][x] == ".":
                 image = load_image("block.png")
-                pt = Platform(coord_x, coord_y, image)
+                pt = Secret_Platform(coord_x, coord_y, image)
+                platforms.append(pt)
             if level[y][x] == "*":
                 image = load_image("platform.png")
                 pt = BlockDie(coord_x, coord_y, image)
