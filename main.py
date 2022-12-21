@@ -6,6 +6,7 @@ from constants import *
 pygame.init()
 pygame.display.set_caption('PyGame')
 screen = pygame.display.set_mode(SIZE)
+pygame.mouse.set_visible(False)
 
 
 def load_image(name: str, directory='data', colorkey=None) -> pygame.Surface:
@@ -195,19 +196,18 @@ entities = pygame.sprite.Group()  # Все объекты
 animatedEntities = pygame.sprite.Group()  # все анимированные объекты, за исключением героя
 monsters = pygame.sprite.Group()  # Все передвигающиеся объекты
 platforms = []  # то, во что мы будем врезаться или опираться
-animatedEntities = pygame.sprite.Group()  # все анимированные объекты, за исключением героя
 if __name__ == '__main__':
     clock = pygame.time.Clock()
 
     bg = Surface(SIZE)
     bg.fill(WHITE)
 
-    total_level_width = len(level[0]) * CELL_SIZE  # Высчитываем фактическую ширину уровня
-    total_level_height = len(level) * CELL_SIZE  # высоту
+    total_level_width = LEVEL_WIDTH * CELL_SIZE  # Высчитываем фактическую ширину уровня
+    total_level_height = LEVEL_HEIGHT * CELL_SIZE  # высоту
 
     camera = Camera(camera_configure, total_level_width, total_level_height)
 
-    tp = BlockTeleport(100, 500, 800, 64)
+    tp = BlockTeleport(100, 500, 800, 100)
     entities.add(tp)
     platforms.append(tp)
     animatedEntities.add(tp)
@@ -222,6 +222,9 @@ if __name__ == '__main__':
                 image = load_image("block.png")
                 pt = Platform(coord_x, coord_y, image)
                 platforms.append(pt)
+            if level[y][x] == ".":
+                image = load_image("block.png")
+                pt = Platform(coord_x, coord_y, image)
             if level[y][x] == "*":
                 image = load_image("platform.png")
                 pt = BlockDie(coord_x, coord_y, image)
@@ -252,8 +255,8 @@ if __name__ == '__main__':
         tick = clock.tick(FPS)
         screen.blit(bg, (0, 0))
         entities.update(left, right, up, platforms)
-        camera.update(hero)
         animatedEntities.update()
+        camera.update(hero)
         for e in entities:
             screen.blit(e.image, camera.apply(e))
         pygame.display.flip()
