@@ -1,3 +1,4 @@
+import os
 import pygame
 from pygame import *
 
@@ -24,7 +25,7 @@ blocks = {
 CELL_SIZE = 100
 HERO_SIZE = HERO_WIDTH, HERO_HEIGT = CELL_SIZE, CELL_SIZE
 MOVE_SPEED = 480 / FPS
-JUMP_POWER = 20
+JUMP_POWER = CELL_SIZE / 5
 GRAVITY = 0.35
 level = [
        "----------------------------------",
@@ -48,7 +49,7 @@ level = [
        "-                                -",
        "-                         -      -",
        "-                            --  -",
-       "-           ***                  -",
+       "-           ***    ^             -",
        "-                                -",
        "----------------------------------"]
 LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
@@ -71,4 +72,11 @@ ANIMATION_JUMP_RIGHT = [('hero/jr.png', 1)]
 ANIMATION_JUMP = [('hero/j.png', 1)]
 ANIMATION_STAY = [('hero/0.png', 1)]
 
-ANIMATION_BLOCKTELEPORT = [('data/tp.png')]
+ANIMATION_BLOCKTELEPORT = [('blocks/tp.png')]
+
+MONSTER_SIZE = MONSTER_WIDTH, MONSTER_HEIGHT = CELL_SIZE, CELL_SIZE
+MONSTER_COLOR = "#2110FF"
+ICON_DIR = os.path.dirname(__file__)  # Полный путь к каталогу с файлами
+
+ANIMATION_MONSTERHORYSONTAL = [('%s/monsters/l1.png' % ICON_DIR),
+                               ('%s/monsters/r2.png' % ICON_DIR)]

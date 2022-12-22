@@ -2,6 +2,7 @@ import os
 import sys
 import pyganim as pyganim
 from constants import *
+from monster import *
 
 pygame.init()
 pygame.display.set_caption('PyGame')
@@ -9,7 +10,7 @@ screen = pygame.display.set_mode(SIZE)
 pygame.mouse.set_visible(False)
 
 
-def load_image(name: str, directory='data', colorkey=None) -> pygame.Surface:
+def load_image(name: str, directory='blocks', colorkey=None) -> pygame.Surface:
     fullname = os.path.join(directory, name)
     # если файл не существует, то выходим
     if not os.path.isfile(fullname):
@@ -26,7 +27,7 @@ def load_image(name: str, directory='data', colorkey=None) -> pygame.Surface:
     return image
 
 
-class Platform(sprite.Sprite):
+class BLock(sprite.Sprite):
     def __init__(self, x, y, image=load_image('block.png')):
         super().__init__(entities)
         self.image = Surface((CELL_SIZE, CELL_SIZE))
@@ -34,7 +35,7 @@ class Platform(sprite.Sprite):
         self.rect = Rect(x, y, CELL_SIZE, CELL_SIZE)
 
 
-class Secret_Platform(Platform):
+class Secret_BLock(BLock):
     def __init__(self, x, y, image=load_image('block.png')):
         super().__init__(x, y, image)
         self.img = pygame.transform.scale(image, (CELL_SIZE, CELL_SIZE))
@@ -46,14 +47,14 @@ class Secret_Platform(Platform):
         self.image = self.img
 
 
-class BlockDie(Platform):
+class BlockDie(BLock):
     def __init__(self, x, y, image):
-        Platform.__init__(self, x, y, image)
+        BLock.__init__(self, x, y, image)
 
 
-class BlockTeleport(Platform):
+class BlockTeleport(BLock):
     def __init__(self, x, y, goX, goY):
-        Platform.__init__(self, x, y)
+        BLock.__init__(self, x, y)
         self.goX = goX  # координаты назначения перемещения
         self.goY = goY  # координаты назначения перемещения
         boltAnim = []
@@ -72,13 +73,15 @@ class Hero(sprite.Sprite):
 
     def __init__(self, x, y):
         super().__init__(entities)
+        self.image = Hero.image
+        self.rect = self.image.get_rect()
+        self.image.set_colorkey(WHITE)
+        self.rect.x = x
+        self.rect.y = y
         self.start_coords = self.startX, self.startY = x, y
         self.xvel = 0  # скорость горизонтального перемещения
         self.yvel = 0  # скорость вертикального перемещения
         self.onGround = False  # На земле ли я?
-        self.image = pygame.transform.scale(Hero.image, HERO_SIZE)
-        self.rect = Rect(x, y, *HERO_SIZE)
-        self.image.set_colorkey(RED)  # делаем фон прозрачным
 
         # Анимация движения вправо
         boltAnim = []
@@ -108,15 +111,20 @@ class Hero(sprite.Sprite):
         self.boltAnimJump.play()
 
     def update(self, *args):
+        if self.rect.y < 0 or self.rect.y > LEVEL_HEIGHT * CELL_SIZE \
+                or self.rect.x < 0 or self.rect.x > LEVEL_WIDTH * CELL_SIZE:
+            self.teleporting(*self.start_coords)
+            self.yvel = 0
+
         if up:
             if self.onGround:  # прыгаем, только когда можем оттолкнуться от земли
                 self.yvel = -JUMP_POWER
-            self.image.fill(RED)
+            self.image.fill(WHITE)
             self.boltAnimJump.blit(self.image, (0, 0))
 
         if left:
             self.xvel = -MOVE_SPEED  # Лево = x- n
-            self.image.fill(RED)
+            self.image.fill(WHITE)
             if up:  # для прыжка влево есть отдельная анимация
                 self.boltAnimJumpLeft.blit(self.image, (0, 0))
             else:
@@ -124,7 +132,7 @@ class Hero(sprite.Sprite):
 
         if right:
             self.xvel = MOVE_SPEED  # Право = x + n
-            self.image.fill(RED)
+            self.image.fill(WHITE)
             if up:
                 self.boltAnimJumpRight.blit(self.image, (0, 0))
             else:
@@ -133,7 +141,7 @@ class Hero(sprite.Sprite):
         if not (left or right):  # стоим, когда нет указаний идти
             self.xvel = 0
             if not up:
-                self.image.fill(RED)
+                self.image.fill(WHITE)
                 self.boltAnimStay.blit(self.image, (0, 0))
 
         if not self.onGround:
@@ -149,8 +157,8 @@ class Hero(sprite.Sprite):
     def collide(self, xvel, yvel, platforms):
         for p in platforms:
             if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
-                if isinstance(p, Secret_Platform):  # если пересакаемый блок - Secret_Platform
-                    p.hide()  # умираем
+                if isinstance(p, Secret_BLock):  # если пересакаемый блок - Secret_BLock
+                    p.hide()  # блок прячется
                     continue
 
                 if xvel > 0:  # если движется вправо
@@ -168,14 +176,14 @@ class Hero(sprite.Sprite):
                     self.rect.top = p.rect.bottom  # то не движется вверх
                     self.yvel = 0  # и энергия прыжка пропадает
 
-                if isinstance(p, BlockDie):  # если пересакаемый блок - BlockDie
+                if isinstance(p, BlockDie) or isinstance(p, Monster):  # если пересакаемый блок- BlockDie или Monster
                     self.die()  # умираем
 
                 elif isinstance(p, BlockTeleport):
                     self.teleporting(p.goX, p.goY)
             else:
-                if isinstance(p, Secret_Platform):
-                    p.show()
+                if isinstance(p, Secret_BLock):  # если непересакаемый блок - Secret_BLock
+                    p.show()  # блок появляется
 
     def die(self):
         time.wait(500)
@@ -237,13 +245,18 @@ if __name__ == '__main__':
             coord_y = y * CELL_SIZE
             if level[y][x] == "@":
                 hero = Hero(coord_x, coord_y)
+            if level[y][x] == "^":
+                mn = Monster(coord_x, coord_y, 2, 150)
+                entities.add(mn)
+                platforms.append(mn)
+                monsters.add(mn)
             if level[y][x] == "-":
                 image = load_image("block.png")
-                pt = Platform(coord_x, coord_y, image)
+                pt = BLock(coord_x, coord_y, image)
                 platforms.append(pt)
             if level[y][x] == ".":
                 image = load_image("block.png")
-                pt = Secret_Platform(coord_x, coord_y, image)
+                pt = Secret_BLock(coord_x, coord_y, image)
                 platforms.append(pt)
             if level[y][x] == "*":
                 image = load_image("platform.png")
@@ -276,6 +289,7 @@ if __name__ == '__main__':
         screen.blit(bg, (0, 0))
         entities.update(left, right, up, platforms)
         animatedEntities.update()
+        monsters.update(platforms)  # передвигаем всех монстров
         camera.update(hero)
         for e in entities:
             screen.blit(e.image, camera.apply(e))
