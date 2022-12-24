@@ -169,7 +169,7 @@ class Hero(sprite.Sprite):
 
                 if yvel > 0:  # если падает вниз
                     self.rect.bottom = p.rect.top  # то не падает вниз
-                    self.onGround = True  # и становится на что1то твердое
+                    self.onGround = True  # и становится на что-то твердое
                     self.yvel = 0  # и энергия падения пропадает
 
                 if yvel < 0:  # если движется вверх
