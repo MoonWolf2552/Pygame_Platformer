@@ -2,7 +2,7 @@ import os
 import pygame
 from pygame import *
 
-SIZE = WIDTH, HEIGHT = 1920, 1080
+SIZE = WIDTH, HEIGHT = 1366, 768
 FPS = 75
 
 BLACK = Color('black')
@@ -22,10 +22,10 @@ blocks = {
     '1': 'block.png',
     '2': 'platform.png'
 }
-CELL_SIZE = 100
+CELL_SIZE = 50
 HERO_SIZE = HERO_WIDTH, HERO_HEIGT = CELL_SIZE, CELL_SIZE
 MOVE_SPEED = 480 / FPS
-JUMP_POWER = CELL_SIZE / 5
+JUMP_POWER = 10
 GRAVITY = 0.35
 level = [
        "----------------------------------",
