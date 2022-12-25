@@ -61,13 +61,6 @@ ANIMATION_RIGHT = [('hero/r1.png'),
                    ('hero/r4.png'),
                    ('hero/r5.png'),
                    ('hero/r6.png')]
-ANIMATION_LEFT = [('hero/l1.png'),
-                  ('hero/l2.png'),
-                  ('hero/l3.png'),
-                  ('hero/l4.png'),
-                  ('hero/l5.png'),
-                  ('hero/l6.png')]
-ANIMATION_JUMP_LEFT = [('hero/jl.png', 1)]
 ANIMATION_JUMP_RIGHT = [('hero/jr.png', 1)]
 ANIMATION_JUMP = [('hero/j.png', 1)]
 ANIMATION_STAY = [('hero/0.png', 1)]
@@ -78,5 +71,5 @@ MONSTER_SIZE = MONSTER_WIDTH, MONSTER_HEIGHT = CELL_SIZE, CELL_SIZE
 MONSTER_COLOR = "#2110FF"
 ICON_DIR = os.path.dirname(__file__)  # Полный путь к каталогу с файлами
 
-ANIMATION_MONSTERHORYSONTAL = [('%s/monsters/l1.png' % ICON_DIR),
+ANIMATION_MONSTERHORYSONTAL = [('%s/monsters/r1.png' % ICON_DIR),
                                ('%s/monsters/r2.png' % ICON_DIR)]
