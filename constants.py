@@ -24,35 +24,9 @@ blocks = {
 }
 CELL_SIZE = 50
 HERO_SIZE = HERO_WIDTH, HERO_HEIGT = CELL_SIZE, CELL_SIZE
-MOVE_SPEED = 480 / FPS
+MOVE_SPEED = 320 / FPS
 JUMP_POWER = 10
-GRAVITY = 0.35
-level = [
-       "----------------------------------",
-       "-                                -",
-       "-                       --       -",
-       "-        *                       -",
-       "-                                -",
-       "-            --                  -",
-       "--                               -",
-       "-                                -",
-       "-                   ----     --- -",
-       "-                                -",
-       "--                               -",
-       "-            *                   -",
-       "-                            --- -",
-       "-                                -",
-       "-      @                         -",
-       "-  *   ---                  *    -",
-       "-      ...                       -",
-       "-   -------         ----         -",
-       "-                                -",
-       "-                         -      -",
-       "-                            --  -",
-       "-           ***    ^             -",
-       "-                                -",
-       "----------------------------------"]
-LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
+GRAVITY = 26.25 / FPS
 
 ANIMATION_DELAY = 100  # скорость смены кадров
 ANIMATION_RIGHT = [('hero/r1.png'),
@@ -67,9 +41,14 @@ ANIMATION_STAY = [('hero/0.png', 1)]
 
 ANIMATION_BLOCKTELEPORT = [('blocks/tp.png')]
 
+ANIMATION_COIN = [('blocks/tp.png')]
+
 MONSTER_SIZE = MONSTER_WIDTH, MONSTER_HEIGHT = CELL_SIZE, CELL_SIZE
 MONSTER_COLOR = "#2110FF"
 ICON_DIR = os.path.dirname(__file__)  # Полный путь к каталогу с файлами
+FILE_DIR = os.path.dirname(__file__)
 
 ANIMATION_MONSTERHORYSONTAL = [('%s/monsters/r1.png' % ICON_DIR),
+                               ('%s/monsters/r2.png' % ICON_DIR)]
+ANIMATION_MONSTERVERTICAL = [('%s/monsters/r1.png' % ICON_DIR),
                                ('%s/monsters/r2.png' % ICON_DIR)]
