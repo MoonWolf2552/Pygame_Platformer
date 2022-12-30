@@ -12,13 +12,13 @@ coins = 0
 level = []
 
 
-def loadLevel():
+def loadLevel(level_num='1.txt'):
     """
     Загрузка уровня
     """
-    global playerX, playerY, level  # объявляем глобальные переменные, это координаты героя
+    global playerX, playerY  # объявляем глобальные переменные, это координаты героя
 
-    levelFile = open('%s/levels/1.txt' % FILE_DIR)
+    levelFile = open(f'%s/levels/{level_num}' % FILE_DIR)
     line = " "
     commands = []
     while line[0] != "/":  # пока не нашли символ завершения файла
@@ -131,7 +131,7 @@ class BlockTeleport(BLock):
         self.boltAnim.play()
 
     def update(self, *args):
-        self.image.fill(WHITE)
+        self.image.fill(COLOR)
         self.boltAnim.blit(self.image, (0, 0))
 
 
@@ -150,7 +150,7 @@ class Coin(BLock):
         self.boltAnim.play()
 
     def update(self, *args):
-        self.image.fill(WHITE)
+        self.image.fill(COLOR)
         self.boltAnim.blit(self.image, (0, 0))
 
 
@@ -167,7 +167,7 @@ class Hero(sprite.Sprite):
         soo = CELL_SIZE / self.rect[3]
         self.image = pygame.transform.scale(Hero.image, (self.rect[2] * soo, self.rect[3] * soo))
         self.rect = self.image.get_rect()
-        self.image.set_colorkey(WHITE)
+        self.image.set_colorkey(COLOR)
         self.rect.x = x
         self.rect.y = y
         self.start_coords = self.startX, self.startY = x, y
@@ -205,7 +205,7 @@ class Hero(sprite.Sprite):
         self.boltAnimJump.scale((self.rect[2], self.rect[3]))
         self.boltAnimJump.play()
 
-    def update(self, *args):
+    def update(self, LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms,  *args):
         if self.rect.y < 0 or self.rect.y > LEVEL_HEIGHT * CELL_SIZE \
                 or self.rect.x < 0 or self.rect.x > LEVEL_WIDTH * CELL_SIZE:
             self.teleporting(*self.start_coords)
@@ -214,12 +214,12 @@ class Hero(sprite.Sprite):
         if up:
             if self.onGround:  # прыгаем, только когда можем оттолкнуться от земли
                 self.yvel = -JUMP_POWER
-            self.image.fill(WHITE)
+            self.image.fill(COLOR)
             self.boltAnimJump.blit(self.image, (0, 0))
 
         if left:
             self.xvel = -MOVE_SPEED  # Лево = x- n
-            self.image.fill(WHITE)
+            self.image.fill(COLOR)
             if up:  # для прыжка влево есть отдельная анимация
                 self.boltAnimJumpLeft.blit(self.image, (0, 0))
             else:
@@ -227,7 +227,7 @@ class Hero(sprite.Sprite):
 
         if right:
             self.xvel = MOVE_SPEED  # Право = x + n
-            self.image.fill(WHITE)
+            self.image.fill(COLOR)
             if up:
                 self.boltAnimJumpRight.blit(self.image, (0, 0))
             else:
@@ -236,7 +236,7 @@ class Hero(sprite.Sprite):
         if not (left or right):  # стоим, когда нет указаний идти
             self.xvel = 0
             if not up:
-                self.image.fill(WHITE)
+                self.image.fill(COLOR)
                 self.boltAnimStay.blit(self.image, (0, 0))
 
         if not self.onGround:
@@ -260,6 +260,7 @@ class Hero(sprite.Sprite):
                 if isinstance(p, Coin):  # если пересакаемый блок - Coin
                     platforms.pop(platforms.index(p))
                     p.kill()
+                    coins += 1
                     continue
 
                 if xvel > 0:  # если движется вправо
@@ -324,13 +325,15 @@ entities = pygame.sprite.Group()  # Все объекты
 animatedEntities = pygame.sprite.Group()  # все анимированные объекты, за исключением героя
 monsters = pygame.sprite.Group()  # Все передвигающиеся объекты
 platforms = []  # то, во что мы будем врезаться или опираться
-if __name__ == '__main__':
+
+
+def main(level_num):
     clock = pygame.time.Clock()
 
     bg = Surface(SIZE)
-    bg.fill(WHITE)
+    bg.fill(COLOR)
 
-    loadLevel()
+    loadLevel(level_num)
     LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
 
     for y in range(LEVEL_HEIGHT):
@@ -381,7 +384,7 @@ if __name__ == '__main__':
 
         tick = clock.tick(FPS)
         screen.blit(bg, (0, 0))
-        entities.update(left, right, up, platforms)
+        entities.update(LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms)
         animatedEntities.update()
         monsters.update(platforms)  # передвигаем всех монстров
         camera.update(hero)
@@ -390,3 +393,7 @@ if __name__ == '__main__':
         pygame.display.flip()
     print(coins)
     pygame.quit()
+
+
+if __name__ == '__main__':
+    main('1.txt')
