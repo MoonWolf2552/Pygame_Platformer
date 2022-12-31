@@ -7,7 +7,6 @@ from monster import *
 pygame.init()
 pygame.display.set_caption('PyGame')
 screen = pygame.display.set_mode(SIZE)
-pygame.mouse.set_visible(False)
 coins = 0
 level = []
 
@@ -205,7 +204,7 @@ class Hero(sprite.Sprite):
         self.boltAnimJump.scale((self.rect[2], self.rect[3]))
         self.boltAnimJump.play()
 
-    def update(self, LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms,  *args):
+    def update(self, LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms, *args):
         if self.rect.y < 0 or self.rect.y > LEVEL_HEIGHT * CELL_SIZE \
                 or self.rect.x < 0 or self.rect.x > LEVEL_WIDTH * CELL_SIZE:
             self.teleporting(*self.start_coords)
@@ -321,6 +320,33 @@ def camera_configure(camera, target_rect):
     return Rect(l, t, w, h)
 
 
+def start_screen():
+    pygame.mouse.set_visible(True)
+
+    fon = Surface((WIDTH, HEIGHT))
+    fon.fill(BLACK)
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    string_rendered = font.render('Press any key to start', True, WHITE)
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top = HEIGHT * 3 / 4 - intro_rect[3] / 2
+    intro_rect.x = (WIDTH - intro_rect[2]) / 2
+    screen.blit(string_rendered, intro_rect)
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                main('1.txt')
+        clock.tick(FPS)
+        pygame.display.flip()
+    pygame.quit()
+
+
+clock = pygame.time.Clock()
 entities = pygame.sprite.Group()  # Все объекты
 animatedEntities = pygame.sprite.Group()  # все анимированные объекты, за исключением героя
 monsters = pygame.sprite.Group()  # Все передвигающиеся объекты
@@ -328,7 +354,7 @@ platforms = []  # то, во что мы будем врезаться или о
 
 
 def main(level_num):
-    clock = pygame.time.Clock()
+    pygame.mouse.set_visible(False)
 
     bg = Surface(SIZE)
     bg.fill(COLOR)
@@ -396,4 +422,4 @@ def main(level_num):
 
 
 if __name__ == '__main__':
-    main('1.txt')
+    start_screen()
