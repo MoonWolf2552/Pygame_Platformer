@@ -22,6 +22,7 @@ blocks = {
     '1': 'block.png',
     '2': 'platform.png'
 }
+COLOR = WHITE
 CELL_SIZE = 50
 HERO_SIZE = HERO_WIDTH, HERO_HEIGT = CELL_SIZE, CELL_SIZE
 MOVE_SPEED = 320 / FPS
