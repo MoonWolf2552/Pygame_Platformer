@@ -254,15 +254,16 @@ class Boss(sprite.Sprite):
 
 
 class Boss_Attack(sprite.Sprite):
-    # image = load_image()
+    image = load_image('attack.png', 'boss')
 
     def __init__(self, x, y):
         """
         Атака Босса
         """
         super().__init__(entities)
-        self.image = Surface((2 * CELL_SIZE, 5 * CELL_SIZE))
-        self.image.fill(GREEN)
+        self.image = pygame.transform.scale(Boss_Attack.image, (CELL_SIZE * 2, CELL_SIZE * 5))
+        self.image.set_alpha(200)
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -477,9 +478,8 @@ class Hero(sprite.Sprite):
     def collide(self, xvel, yvel):
         global coins
         for p in platforms:
-            if sprite.collide_mask(self, p):
-                if isinstance(p, Boss) or isinstance(p, Boss_Attack):
-                    self.die()
+            if (isinstance(p, Boss) or isinstance(p, Boss_Attack)) and sprite.collide_mask(self, p):
+                self.die()
 
             if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
                 if isinstance(p, Flag):  # если пересакаемый блок - Flag
@@ -1106,6 +1106,8 @@ def boss_level():
 
     pygame.time.set_timer(pygame.USEREVENT, 1000)
     seconds = 0
+    finish = 120
+    num = 2
 
     start = True
     stay_right = True
@@ -1118,10 +1120,21 @@ def boss_level():
 
             if event.type == pygame.USEREVENT:
                 seconds += 1
-                if seconds == 120:
+                if seconds == finish:
                     finish_level(user_name, level_num, coins)
-                if not seconds % 1 and len(boss_attacks) < 2:
-                    ba = Boss_Attack(boss.rect.x, choice((1, 5, 10)) * CELL_SIZE)
+                if seconds == finish // 2:
+                    num += 1
+                if not seconds % 1 and len(boss_attacks) < num:
+                    line = 0
+                    if hero.rect.y > CELL_SIZE and hero.rect.y + hero.rect.width < CELL_SIZE * 6:
+                        line = 1
+                    elif hero.rect.y > CELL_SIZE * 4 and hero.rect.y + hero.rect.width < CELL_SIZE * 9:
+                        line = 4
+                    elif hero.rect.y > CELL_SIZE * 8 and hero.rect.y + hero.rect.width < CELL_SIZE * 13:
+                        line = 8
+                    elif hero.rect.y > CELL_SIZE * 10 and hero.rect.y + hero.rect.width < CELL_SIZE * 15:
+                        line = 10
+                    ba = Boss_Attack(boss.rect.x, line * CELL_SIZE)
                     boss_attacks.append(ba)
                     platforms.append(ba)
 
