@@ -1,29 +1,48 @@
 import os
 import sqlite3
 import sys
+import pygame
 import pyganim
 import pygame_menu
 from pathlib import Path
+from random import choice
 from typing import *
 from constants import *
 
 pygame.init()
-pygame.display.set_caption('PyGame')
+pygame.display.set_caption('Dark Souls - Prepare To Die Edition')
+pygame.display.set_icon(pygame.image.load("data/img/icon.jpg"))
 screen = pygame.display.set_mode(SIZE)
 all_levels = len(list(Path('data/levels').iterdir()))
 clock = pygame.time.Clock()
 user_name = 'Unnamed'
+level = []
+all_coins = 0
+
+
+# TODO: Сделать анимацию атаки босса
+
+
+def sound_load(sound_path: str = 'data/sounds') -> dict:
+    """Загружает словарь звуков"""
+    sound_files = [f for f in os.listdir(sound_path) if os.path.isfile(os.path.join(sound_path, f))]
+    return {file_name.split('.')[0]: pygame.mixer.Sound(os.path.join(sound_path, file_name)) for file_name in
+            sound_files}
+
+
+# чтоб не мучатся с пробросом звуков делаем глобально
+sounds = sound_load()
 
 
 def loadLevel(level_num):
     """
     Загрузка уровня
     """
-    global playerX, playerY  # объявляем глобальные переменные, это координаты героя
+    global playerX, playerY, all_coins  # объявляем глобальные переменные, это координаты героя
 
     levelFile = open(f'%s/data/levels/{level_num}' % FILE_DIR)
     line = " "
-    commands = []
+    all_coins = 0
     while line[0] != "/":  # пока не нашли символ завершения файла
         line = levelFile.readline()  # считываем построчно
         if line and line[0] == "[":  # если нашли символ начала уровня
@@ -41,14 +60,17 @@ def loadLevel(level_num):
                     playerY = int(commands[2]) * CELL_SIZE
 
                 if commands[0] == "portal":  # если первая команда portal, то создаем портал
-                    tp = BlockTeleport(int(commands[1]) * CELL_SIZE, int(commands[2]) * CELL_SIZE,
+                    tp = BLockTeleport(int(commands[1]) * CELL_SIZE, int(commands[2]) * CELL_SIZE,
                                        int(commands[3]) * CELL_SIZE, int(commands[4]) * CELL_SIZE)
                     platforms.append(tp)
                     animatedEntities.add(tp)
 
-                if commands[0] == "monster":  # если первая команда monster, то создаем монстра
+                if commands[0][:-1] == "monster":  # если первая команда monster, то создаем монстра
+                    anim = ANIMATION_MONSTERH1
+                    if commands[0][-1] == '2':
+                        anim = ANIMATION_MONSTERH2
                     mn = Monster(int(commands[1]) * CELL_SIZE, int(commands[2]) * CELL_SIZE,
-                                 int(commands[3]), int(commands[4]) * CELL_SIZE)
+                                 int(commands[3]), int(commands[4]) * CELL_SIZE, anim, commands[0][-1])
                     entities.add(mn)
                     platforms.append(mn)
                     monsters.add(mn)
@@ -63,6 +85,7 @@ def loadLevel(level_num):
 
                 if commands[0] == "coin":  # если первая команда portal, то создаем портал
                     c = Coin(int(commands[1]) * CELL_SIZE, int(commands[2]) * CELL_SIZE)
+                    all_coins += 1
                     platforms.append(c)
                     animatedEntities.add(c)
 
@@ -85,13 +108,12 @@ def load_image(name: str, directory='blocks', colorkey=None) -> pygame.Surface:
 
 
 class Monster(sprite.Sprite):
-    image = load_image('r1.png', 'monsters')
-
-    def __init__(self, x, y, left, maxLengthLeft):
+    def __init__(self, x, y, left, maxLengthLeft, ANIMATION, num):
         """
         Монстр
         """
         super().__init__()
+        Monster.image = load_image('r1.png', f'monsters/{num}')
         self.image = Monster.image
         self.rect = self.image.get_rect()
         soo = CELL_SIZE / self.rect[3]
@@ -105,11 +127,17 @@ class Monster(sprite.Sprite):
         self.maxLengthLeft = maxLengthLeft  # максимальное расстояние, которое может пройти в одну сторону
         self.xvel = 1  # cкорость передвижения по горизонтали, 0 - стоит на месте
 
+        animation_speed = 100
+        if num == '2':
+            animation_speed = 150
         boltAnim = []
-        for anim in ANIMATION_MONSTERHORYSONTAL:
-            boltAnim.append((anim, 300))
+        for anim in ANIMATION:
+            boltAnim.append((anim, animation_speed))
         self.boltAnimRight = pyganim.PygAnimation(boltAnim)
-        self.boltAnimRight.scale((self.rect[2], self.rect[3]))
+        if num == '2':
+            self.boltAnimRight.scale((self.rect[2] + 8, self.rect[3]))
+        else:
+            self.boltAnimRight.scale((self.rect[2], self.rect[3]))
         self.boltAnimRight.play()
 
         self.boltAnimLeft = self.boltAnimRight.getCopy()
@@ -118,7 +146,7 @@ class Monster(sprite.Sprite):
 
     def update(self, *args):  # по принципу героя
 
-        self.image.fill(Color(MONSTER_COLOR))
+        self.image.fill(MONSTER_COLOR)
         if self.xvel > 0:
             self.boltAnimRight.blit(self.image, (0, 0))
         if self.xvel < 0:
@@ -138,7 +166,7 @@ class Monster(sprite.Sprite):
 
 
 class Flying_Monster(sprite.Sprite):
-    image = load_image('r1.png', 'monsters')
+    image = load_image('f2.png', 'monsters/fl')
 
     def __init__(self, x, y, left, up, maxLengthLeft, maxLengthUp):
         """
@@ -150,7 +178,7 @@ class Flying_Monster(sprite.Sprite):
         soo = CELL_SIZE / self.rect[3]
         self.image = pygame.transform.scale(Flying_Monster.image, (self.rect[2] * soo, self.rect[3] * soo))
         self.rect = self.image.get_rect()
-        self.image.set_colorkey(MONSTER_COLOR)
+        self.image.set_colorkey(FLYING_MONSTER_COLOR)
         self.rect.x = x
         self.rect.y = y
         self.startX = x  # начальные координаты
@@ -162,7 +190,7 @@ class Flying_Monster(sprite.Sprite):
 
         boltAnim = []
         for anim in ANIMATION_MONSTERVERTICAL:
-            boltAnim.append((anim, 300))
+            boltAnim.append((anim, 100))
         self.boltAnimRight = pyganim.PygAnimation(boltAnim)
         self.boltAnimRight.scale((self.rect[2], self.rect[3]))
         self.boltAnimRight.play()
@@ -173,7 +201,7 @@ class Flying_Monster(sprite.Sprite):
 
     def update(self, *args):  # по принципу героя
 
-        self.image.fill(Color(MONSTER_COLOR))
+        self.image.fill(FLYING_MONSTER_COLOR)
         if self.xvel > 0:
             self.boltAnimRight.blit(self.image, (0, 0))
         if self.xvel < 0:
@@ -196,6 +224,58 @@ class Flying_Monster(sprite.Sprite):
                 self.yvel = -self.yvel
 
 
+class Boss(sprite.Sprite):
+    image = load_image('1.png', 'boss')
+
+    def __init__(self, x, y):
+        """
+        Босс
+        """
+        super().__init__(entities)
+        self.image = Boss.image
+        self.rect = self.image.get_rect()
+        self.image = pygame.transform.scale(Boss.image, (self.rect.width * 5, self.rect.height * 5))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.image.set_colorkey(WHITE)
+
+        boltAnim = []
+        for anim in ANIMATION_BOSS:
+            boltAnim.append((anim, 300))
+        self.boltAnim = pyganim.PygAnimation(boltAnim)
+        self.boltAnim.scale((self.rect[2], self.rect[3]))
+        self.boltAnim.play()
+
+    def update(self, *args):
+        self.image.fill(WHITE)
+        self.boltAnim.blit(self.image, (0, 0))
+
+
+class Boss_Attack(sprite.Sprite):
+    # image = load_image()
+
+    def __init__(self, x, y):
+        """
+        Атака Босса
+        """
+        super().__init__(entities)
+        self.image = Surface((2 * CELL_SIZE, 5 * CELL_SIZE))
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.vx = -10
+
+    def update(self, *args):
+        self.rect.x += self.vx
+        if self.rect.x < 50:
+            boss_attacks.pop(0)
+            platforms.pop(platforms.index(self))
+            self.kill()
+
+
 class BLock(sprite.Sprite):
     def __init__(self, x, y, image=load_image('block.png')):
         """
@@ -204,6 +284,12 @@ class BLock(sprite.Sprite):
         super().__init__(entities)
         self.image = pygame.transform.scale(image, (CELL_SIZE, CELL_SIZE))
         self.rect = Rect(x, y, CELL_SIZE, CELL_SIZE)
+
+
+class Invisible_BLock(BLock):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.image.set_alpha(0)
 
 
 class Secret_BLock(BLock):
@@ -221,7 +307,7 @@ class Secret_BLock(BLock):
         self.image.set_alpha(255)
 
 
-class BlockDie(BLock):
+class BLockDie(BLock):
     def __init__(self, x, y, image):
         """
         Убивающий блок
@@ -229,7 +315,7 @@ class BlockDie(BLock):
         super().__init__(x, y, image)
 
 
-class BlockTeleport(BLock):
+class BLockTeleport(BLock):
     def __init__(self, x, y, goX, goY):
         """
         Телепорт
@@ -254,30 +340,18 @@ class Coin(BLock):
         """
         Монетка
         """
-        super().__init__(x + CELL_SIZE / 4, y + CELL_SIZE / 4)
-        self.life = True
-        boltAnim = []
-        for anim in ANIMATION_COIN:
-            boltAnim.append((anim, 100))
-        self.boltAnim = pyganim.PygAnimation(boltAnim)
-        self.boltAnim.scale((CELL_SIZE / 2, CELL_SIZE / 2))
-        self.boltAnim.play()
-
-    def update(self, *args):
-        self.image.fill(COLOR)
-        self.boltAnim.blit(self.image, (0, 0))
+        super().__init__(x, y)
+        self.image = pygame.transform.scale(load_image('coin.png', 'blocks'), (CELL_SIZE, CELL_SIZE))
 
 
 class Flag(BLock):
-    image = load_image('flag1.png', 'flag')
-
     def __init__(self, x, y):
         super().__init__(x, y)
         boltAnim = []
         for anim in ANIMATION_FLAG:
             boltAnim.append((anim, 100))
         self.boltAnim = pyganim.PygAnimation(boltAnim)
-        self.boltAnim.scale((CELL_SIZE, CELL_SIZE))
+        self.boltAnim.scale((CELL_SIZE, CELL_SIZE * 1.5))
         self.boltAnim.play()
 
     def update(self, *args):
@@ -287,11 +361,11 @@ class Flag(BLock):
 
 def finish_level(user_name, level_num, coins):
     update_bd(user_name, level_num, coins)
-    menu_start()
+    result_screen()
 
 
 class Hero(sprite.Sprite):
-    image = load_image('0.png', 'hero')
+    image = load_image('sr.png', 'hero')
 
     def __init__(self, x, y):
         """
@@ -303,6 +377,7 @@ class Hero(sprite.Sprite):
         soo = CELL_SIZE / self.rect[3]
         self.image = pygame.transform.scale(Hero.image, (self.rect[2] * soo, self.rect[3] * soo))
         self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(load_image('sr.png', 'hero/hero_clear'))
         self.image.set_colorkey(COLOR)
         self.rect.x = x
         self.rect.y = y
@@ -316,7 +391,7 @@ class Hero(sprite.Sprite):
         for anim in ANIMATION_RIGHT:
             boltAnim.append((anim, ANIMATION_DELAY))
         self.boltAnimRight = pyganim.PygAnimation(boltAnim)
-        self.boltAnimRight.scale((self.rect[2], self.rect[3]))
+        self.boltAnimRight.scale((self.rect[2], self.rect[3] + 8))
         self.boltAnimRight.play()
 
         # Анимация движения влево
@@ -324,24 +399,32 @@ class Hero(sprite.Sprite):
         self.boltAnimLeft.flip(True, False)
         self.boltAnimLeft.play()
 
-        self.boltAnimStay = pyganim.PygAnimation(ANIMATION_STAY)
-        self.boltAnimStay.scale((self.rect[2], self.rect[3]))
-        self.boltAnimStay.play()
-        self.boltAnimStay.blit(self.image, (0, 0))  # По-умолчанию, стоим
-
         self.boltAnimJumpRight = pyganim.PygAnimation(ANIMATION_JUMP_RIGHT)
-        self.boltAnimJumpRight.scale((self.rect[2], self.rect[3]))
+        self.boltAnimJumpRight.scale((self.rect[2], self.rect[3] + 8))
         self.boltAnimJumpRight.play()
 
         self.boltAnimJumpLeft = self.boltAnimJumpRight.getCopy()
         self.boltAnimJumpLeft.flip(True, False)
         self.boltAnimJumpLeft.play()
 
-        self.boltAnimJump = pyganim.PygAnimation(ANIMATION_JUMP)
-        self.boltAnimJump.scale((self.rect[2], self.rect[3]))
-        self.boltAnimJump.play()
+        self.boltAnimStayRight = pyganim.PygAnimation(ANIMATION_STAY_RIGHT)
+        self.boltAnimStayRight.scale((self.rect[2], self.rect[3] + 8))
+        self.boltAnimStayRight.play()
+        self.boltAnimStayRight.blit(self.image, (0, 0))  # По-умолчанию, стоим
 
-    def update(self, LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms, *args):
+        self.boltAnimStayLeft = self.boltAnimStayRight.getCopy()
+        self.boltAnimStayLeft.flip(True, False)
+        self.boltAnimStayLeft.play()
+
+        self.boltAnimJumpStayRight = pyganim.PygAnimation(ANIMATION_JUMP_STAY_RIGHT)
+        self.boltAnimJumpStayRight.scale((self.rect[2], self.rect[3] + 8))
+        self.boltAnimJumpStayRight.play()
+
+        self.boltAnimJumpStayLeft = self.boltAnimJumpStayRight.getCopy()
+        self.boltAnimJumpStayLeft.flip(True, False)
+        self.boltAnimJumpStayLeft.play()
+
+    def update(self, LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms, stay_right, *args):
         if self.rect.y < 0 or self.rect.y > LEVEL_HEIGHT * CELL_SIZE \
                 or self.rect.x < 0 or self.rect.x > LEVEL_WIDTH * CELL_SIZE:
             self.teleporting(*self.start_coords)
@@ -351,7 +434,10 @@ class Hero(sprite.Sprite):
             if self.onGround:  # прыгаем, только когда можем оттолкнуться от земли
                 self.yvel = -JUMP_POWER
             self.image.fill(COLOR)
-            self.boltAnimJump.blit(self.image, (0, 0))
+            if stay_right:
+                self.boltAnimJumpStayRight.blit(self.image, (0, 0))
+            else:
+                self.boltAnimJumpStayLeft.blit(self.image, (0, 0))
 
         if left:
             self.xvel = -MOVE_SPEED  # Лево = x- n
@@ -373,7 +459,10 @@ class Hero(sprite.Sprite):
             self.xvel = 0
             if not up:
                 self.image.fill(COLOR)
-                self.boltAnimStay.blit(self.image, (0, 0))
+                if stay_right:
+                    self.boltAnimStayRight.blit(self.image, (0, 0))
+                else:
+                    self.boltAnimStayLeft.blit(self.image, (0, 0))
 
         if not self.onGround:
             self.yvel += GRAVITY
@@ -388,6 +477,10 @@ class Hero(sprite.Sprite):
     def collide(self, xvel, yvel):
         global coins
         for p in platforms:
+            if sprite.collide_mask(self, p):
+                if isinstance(p, Boss) or isinstance(p, Boss_Attack):
+                    self.die()
+
             if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
                 if isinstance(p, Flag):  # если пересакаемый блок - Flag
                     finish_level(user_name, int(level_num), coins)  # конец уровня
@@ -398,6 +491,7 @@ class Hero(sprite.Sprite):
                     continue
 
                 if isinstance(p, Coin):  # если пересакаемый блок - Coin
+                    sounds['coin'].play()
                     platforms.pop(platforms.index(p))
                     p.kill()
                     coins += 1
@@ -405,7 +499,11 @@ class Hero(sprite.Sprite):
 
                 if isinstance(p, Monster) or isinstance(p, Flying_Monster):
                     # если пересакаемый блок- Monster или Flying_Monster
-                    if self.rect.bottom - 4 <= p.rect.top:
+                    if self.rect.bottom - 10 <= p.rect.top:
+                        if isinstance(p, Monster):
+                            sounds['death'].play()
+                        elif isinstance(p, Flying_Monster):
+                            sounds['flying_monster_dying'].play()
                         platforms.pop(platforms.index(p))
                         p.kill()
                         continue
@@ -435,73 +533,22 @@ class Hero(sprite.Sprite):
                     else:
                         self.die()
 
-                if isinstance(p, BlockDie):  # если пересакаемый блок- BlockDie
+                if isinstance(p, BLockDie):  # если пересакаемый блок- BLockDie или Boss или Boss_Attack
                     self.die()  # умираем
 
-                elif isinstance(p, BlockTeleport):
+                elif isinstance(p, BLockTeleport):
                     self.teleporting(p.goX, p.goY)
             else:
                 if isinstance(p, Secret_BLock):  # если непересакаемый блок - Secret_BLock
                     p.show()  # блок появляется
 
     def die(self):
+        sounds['you_died'].play()
         death_screen()
 
     def teleporting(self, goX, goY):
         self.rect.x = goX
         self.rect.y = goY
-
-
-class Camera(object):
-    """
-    Камера
-    """
-    def __init__(self, camera_func, width, height):
-        self.camera_func = camera_func
-        self.state = Rect(0, 0, width, height)
-
-    def apply(self, target):
-        return target.rect.move(self.state.topleft)
-
-    def update(self, target):
-        self.state = self.camera_func(self.state, target.rect)
-
-
-def camera_configure(camera, target_rect):
-    lf, t, _, _ = target_rect
-    _, _, w, h = camera
-    lf, t = -lf + WIDTH / 2, -t + HEIGHT / 2
-
-    lf = min(0, lf)  # Не движемся дальше левой границы
-    lf = max(-(camera.width - WIDTH), lf)  # Не движемся дальше правой границы
-    t = max(-(camera.height - HEIGHT), t)  # Не движемся дальше нижней границы
-    t = min(0, t)  # Не движемся дальше верхней границы
-
-    return Rect(lf, t, w, h)
-
-
-def start_screen():
-    fon = Surface(SIZE)
-    fon.fill(BLACK)
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
-    string_rendered = font.render('Press any button to start', True, pygame.Color('white'))
-    intro_rect = string_rendered.get_rect()
-    intro_rect.x = (WIDTH - intro_rect[2]) / 2
-    intro_rect.top = HEIGHT * 3 / 4 - intro_rect[3] / 2
-    screen.blit(string_rendered, intro_rect)
-
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                menu_start()
-        pygame.display.flip()
-        clock.tick(FPS)
-    pygame.quit()
 
 
 # MENU
@@ -515,10 +562,16 @@ def change_name(value):
 
 
 def set_sound_volume(value: Any, volume: float) -> None:
-    pass
+    """
+    PyGame mixer не поддерживает глобальной громкости для звуков,
+    поэтому нужно каждый звук регулировать отдельно.
+    Пробегаем по инстансу звуков и выставляем громкость
+    """
+    for k, v in sounds.items():
+        sounds[k].set_volume(volume)
 
 
-def menu_start(score: int = 0, level: int = 1) -> None:
+def menu_start() -> None:
     """
     стартовое меню игры
     """
@@ -527,8 +580,9 @@ def menu_start(score: int = 0, level: int = 1) -> None:
              'Author: Ilya Terentyev',
              'Email: iliyaklassgg@gmail.com']
 
-    HELP = ['Управление кнопками вправо и влево. Пауза клавиша <P>',
-            'Рестарт клавиша <R']
+    HELP = ['Управление кнопками <A>, <D> и <SPACE>. Пауза клавиша <P>',
+            'Рестарт клавиша <R>',
+            'Выйти в меню <Esc>']
 
     # menu ABOUT
     about_theme = pygame_menu.themes.THEME_DARK.copy()
@@ -561,6 +615,25 @@ def menu_start(score: int = 0, level: int = 1) -> None:
     help_menu.add.vertical_margin(30)
     help_menu.add.button('Return to menu', pygame_menu.events.BACK)
 
+    # menu SCORES
+    scores_theme = pygame_menu.themes.THEME_DARK
+    scores_theme.widget_margin = (0, 0)
+    scores_menu = pygame_menu.Menu(
+        height=HEIGHT * 0.9,
+        theme=scores_theme,
+        title='High scores',
+        width=WIDTH * 0.7,
+        mouse_enabled=True
+    )
+    c = 0
+    for n, s in get_results():
+        if c == 10:
+            break
+        scores_menu.add.label(f'{n} --------- {s * 100}')
+        c += 1
+    scores_menu.add.vertical_margin(30)
+    scores_menu.add.button('Return to menu', pygame_menu.events.BACK)
+
     # main MENU
     menu = pygame_menu.Menu(height=HEIGHT,
                             width=WIDTH,
@@ -575,6 +648,7 @@ def menu_start(score: int = 0, level: int = 1) -> None:
     menu.add.button('Play', menu_level)
     menu.add.text_input('Name: ', default=user_name, onchange=change_name)
     menu.add.selector('Volume: ', [(f'{i}%', i / 100) for i in range(0, 101, 10)], default=5, onchange=set_sound_volume)
+    menu.add.button('High scores', scores_menu)
     menu.add.button('Help', help_menu)
     menu.add.button('About', about_menu)
     menu.add.button('Quit', pygame_menu.events.EXIT)
@@ -600,6 +674,8 @@ def menu_level():
 
     for i in range(1, levels + 1):
         level_menu.add.button(f'Level {str(i)}', level_run, str(i))
+    if get_all_coins(user_name)[0] >= 18:
+        level_menu.add.button(f'Boss Level', boss_level)
     level_menu.add.vertical_margin(30)
     level_menu.add.button('Return to menu', menu_start)
     level_menu.mainloop(screen)
@@ -617,6 +693,18 @@ def get_levels(user_name):
     return result
 
 
+def get_all_coins(user_name):
+    con = sqlite3.connect('data/results.sqlite')
+    cur = con.cursor()
+
+    result = cur.execute(f"""SELECT all_coins FROM results
+                            WHERE name = '{user_name}'""").fetchone()
+
+    con.close()
+
+    return result
+
+
 def update_name(user_name):
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
@@ -625,8 +713,8 @@ def update_name(user_name):
                             WHERE name = '{user_name}'""").fetchone()
     if not result:
         cur.execute(f"""INSERT INTO
-                        results(name, open_levels, all_coins, level1, level2, level3, level4, level5, level6)
-                        VALUES('{user_name}', 1, 0, 0, 0, 0, 0, 0, 0)""")
+                        results(name, open_levels, all_coins, level1, level2, level3, level4, level5, level6, boss_level)
+                        VALUES('{user_name}', 1, 0, 0, 0, 0, 0, 0, 0, 0)""")
 
     con.commit()
     con.close()
@@ -635,13 +723,37 @@ def update_name(user_name):
 def update_bd(user_name, level_num, coins):
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
-    ln = 0
+
+    if level_num == '7':
+        cur.execute(f"""UPDATE results
+                        SET boss_level = 1
+                        WHERE name = '{user_name}'""")
+
+        result = cur.execute(f"""SELECT * FROM results
+                                    WHERE name = '{user_name}'""").fetchone()
+
+        cur.execute(f"""UPDATE results
+                        SET all_coins = {sum(list(result[4:]))}
+                        WHERE name = '{user_name}'""")
+
+        con.commit()
+        con.close()
+
+        return
+
+    result = cur.execute(f"""SELECT level{level_num} FROM results
+                                WHERE name = '{user_name}'""").fetchone()
+
+    if result[0] < coins:
+        cs = coins
+    else:
+        cs = result[0]
 
     cur.execute(f"""UPDATE results
-                SET level{level_num} = {coins}
+                SET level{level_num} = {cs}
                 WHERE name = '{user_name}'""")
 
-    if get_levels(user_name)[0] == int(level_num) and int(level_num) < all_levels:
+    if get_levels(user_name)[0] == int(level_num) and int(level_num) < all_levels - 1:
         ln = int(level_num) + 1
     else:
         ln = get_levels(user_name)[0]
@@ -661,7 +773,63 @@ def update_bd(user_name, level_num, coins):
     con.close()
 
 
+def get_results():
+    con = sqlite3.connect('data/results.sqlite')
+    cur = con.cursor()
+
+    result = cur.execute(f"""SELECT name, all_coins FROM results""").fetchall()
+
+    result.sort(key=lambda x: x[1], reverse=True)
+    print(result)
+
+    con.close()
+
+    return result[:10]
+
+
+def start_screen():
+    fon = Surface(SIZE)
+    fon.fill(BLACK)
+    screen.blit(fon, (0, 0))
+
+    img = load_image('logo.png', 'img')
+    img_rect = img.get_rect()
+    img_rect.x = (WIDTH - img_rect[2]) / 2
+    img_rect.top = HEIGHT * 2 / 6 - img_rect[3] / 2
+    screen.blit(img, img_rect)
+
+    font = pygame.font.Font(None, 30)
+    string_rendered = font.render('Press any button to start', True, pygame.Color('white'))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.x = (WIDTH - intro_rect[2]) / 2
+    intro_rect.top = HEIGHT * 3 / 4 - intro_rect[3] / 2
+    screen.blit(string_rendered, intro_rect)
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                menu_start()
+        clock.tick(FPS)
+        pygame.display.flip()
+    pygame.quit()
+
+
 def death_screen():
+    bg = Surface(SIZE)
+    bg.fill(BLACK)
+    screen.blit(bg, (0, 0))
+
+    img = load_image('you_died.png', 'img')
+    img = pygame.transform.scale(img, (300 * 2, 178 * 3))
+    img_rect = img.get_rect()
+    img_rect.x = (WIDTH - img_rect[2]) / 2
+    img_rect.top = HEIGHT * 2 / 6 - img_rect[3] / 2
+    screen.blit(img, img_rect)
+
     font = pygame.font.Font(None, 30)
     string_rendered = font.render('Press <SPACE> to continue', True, pygame.Color('white'))
     intro_rect = string_rendered.get_rect()
@@ -675,20 +843,116 @@ def death_screen():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == K_SPACE:
-                level_run(level_num)
-        pygame.display.flip()
+                sounds['you_died'].stop()
+                if level_num != '7':
+                    level_run(level_num)
+                else:
+                    boss_level()
         clock.tick(FPS)
+        pygame.display.flip()
     pygame.quit()
+
+
+def result_screen():
+    global level_num
+
+    sounds['victory_achieved'].play()
+
+    bg = Surface(SIZE)
+    bg.fill(WHITE)
+    screen.blit(bg, (0, 0))
+
+    img = load_image('victory.png', 'img')
+    img = pygame.transform.scale(img, (694 * 1.5, 67 * 1.5))
+    img_rect = img.get_rect()
+    img_rect.x = (WIDTH - img_rect[2]) / 2
+    img_rect.top = HEIGHT * 2 / 6 - img_rect[3] / 2
+    screen.blit(img, img_rect)
+
+    font = pygame.font.Font(None, 30)
+    string_rendered = font.render(f'Level {level_num}', True, BLACK)
+    intro_rect = string_rendered.get_rect()
+    intro_rect.x = (WIDTH - intro_rect[2]) / 2
+    intro_rect.top = HEIGHT * 0.15 - intro_rect[3] / 2
+    screen.blit(string_rendered, intro_rect)
+
+    font = pygame.font.Font(None, 30)
+    string_rendered = font.render(f'{coins} / {all_coins}', True, GOLD)
+    intro_rect = string_rendered.get_rect()
+    intro_rect.x = (WIDTH - intro_rect[2]) / 2
+    intro_rect.top = HEIGHT * 1 / 2 - intro_rect[3] / 2
+    screen.blit(string_rendered, intro_rect)
+
+    font = pygame.font.Font(None, 30)
+    string_rendered = font.render('Press <SPACE> to continue', True, BLACK)
+    intro_rect = string_rendered.get_rect()
+    intro_rect.x = (WIDTH - intro_rect[2]) / 2
+    intro_rect.top = HEIGHT * 0.8 - intro_rect[3] / 2
+    screen.blit(string_rendered, intro_rect)
+
+    font = pygame.font.Font(None, 30)
+    string_rendered = font.render('Press <M> to menu', True, BLACK)
+    intro_rect = string_rendered.get_rect()
+    intro_rect.x = (WIDTH - intro_rect[2]) / 2
+    intro_rect.top = HEIGHT * 0.9 - intro_rect[3] / 2
+    screen.blit(string_rendered, intro_rect)
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN and event.key == K_SPACE:
+                if level_num != '6' and level_num != '7':
+                    sounds['victory_achieved'].stop()
+                    level_num = str(int(level_num) + 1)
+                    level_run(level_num)
+            if event.type == pygame.KEYDOWN and event.key == K_m:
+                sounds['victory_achieved'].stop()
+                menu_level()
+        clock.tick(FPS)
+        pygame.display.flip()
+    pygame.quit()
+
+
+class Camera(object):
+    """
+    Камера
+    """
+
+    def __init__(self, camera_func, width, height):
+        self.camera_func = camera_func
+        self.state = Rect(0, 0, width, height)
+
+    def apply(self, target):
+        return target.rect.move(self.state.topleft)
+
+    def update(self, target):
+        self.state = self.camera_func(self.state, target.rect)
+
+
+def camera_configure(camera, target_rect):
+    lf, t, _, _ = target_rect
+    _, _, w, h = camera
+    lf, t = -lf + WIDTH / 2, -t + HEIGHT / 2
+
+    lf = min(0, lf)  # Не движемся дальше левой границы
+    lf = max(-(camera.width - WIDTH), lf)  # Не движемся дальше правой границы
+    t = max(-(camera.height - HEIGHT), t)  # Не движемся дальше нижней границы
+    t = min(0, t)  # Не движемся дальше верхней границы
+
+    return Rect(lf, t, w, h)
 
 
 entities = pygame.sprite.Group()  # Все объекты
 animatedEntities = pygame.sprite.Group()  # все анимированные объекты, за исключением героя
 monsters = pygame.sprite.Group()  # Все передвигающиеся объекты
 platforms = []  # то, во что мы будем врезаться или опираться
+boss_attacks = []  # атаки босса
 
 
 def level_run(levelnum):
-    global level, level_num, coins, entities, animatedEntities, monsters, platforms
+    global level, level_num, coins, entities, animatedEntities, monsters, platforms, JUMP_POWER
 
     pygame.mouse.set_visible(False)
 
@@ -707,6 +971,8 @@ def level_run(levelnum):
     loadLevel(f'{levelnum}.txt')
     LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
 
+    JUMP_POWER = 11
+
     for y in range(LEVEL_HEIGHT):
         for x in range(LEVEL_WIDTH):
             coord_x = x * CELL_SIZE
@@ -715,13 +981,16 @@ def level_run(levelnum):
                 image = load_image("block.png")
                 pt = BLock(coord_x, coord_y, image)
                 platforms.append(pt)
+            if level[y][x] == "_":
+                pt = Invisible_BLock(coord_x, coord_y)
+                platforms.append(pt)
             if level[y][x] == ".":
                 image = load_image("block.png")
                 pt = Secret_BLock(coord_x, coord_y, image)
                 platforms.append(pt)
             if level[y][x] == "*":
-                image = load_image("platform.png")
-                pt = BlockDie(coord_x, coord_y, image)
+                image = load_image("block_die.png")
+                pt = BLockDie(coord_x, coord_y, image)
                 platforms.append(pt)
             if level[y][x] == "F":
                 pt = Flag(coord_x, coord_y)
@@ -734,8 +1003,8 @@ def level_run(levelnum):
 
     camera = Camera(camera_configure, total_level_width, total_level_height)
 
-    one = True
     start = True
+    stay_right = True
     left = right = up = False
     running = True
     while running:
@@ -745,7 +1014,6 @@ def level_run(levelnum):
 
             if event.type == KEYDOWN and event.key == K_p:
                 start = not start
-                one = True
 
             if event.type == KEYDOWN and event.key == K_r:
                 level_run(level_num)
@@ -755,8 +1023,10 @@ def level_run(levelnum):
 
             if event.type == KEYDOWN and event.key == K_a:
                 left = True
+                stay_right = False
             if event.type == KEYDOWN and event.key == K_d:
                 right = True
+                stay_right = True
 
             if event.type == KEYUP and event.key == K_d:
                 right = False
@@ -771,23 +1041,123 @@ def level_run(levelnum):
         tick = clock.tick(FPS)
         if start:
             screen.blit(bg, (0, 0))
-            entities.update(LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms)
+            entities.update(LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms, stay_right)
             animatedEntities.update()
             monsters.update(platforms)  # передвигаем всех монстров
             camera.update(hero)
             for e in entities:
                 screen.blit(e.image, camera.apply(e))
         else:
-            if one:
-                one = False
-                font = pygame.font.Font(None, 30)
-                string_rendered = font.render('Press <P> to continue', True, pygame.Color('white'))
-                intro_rect = string_rendered.get_rect()
-                intro_rect.x = (WIDTH - intro_rect[2]) / 2
-                intro_rect.top = HEIGHT * 3 / 4 - intro_rect[3] / 2
-                screen.blit(string_rendered, intro_rect)
+            one = False
+            font = pygame.font.Font(None, 30)
+            string_rendered = font.render('Press <P> to continue', True, pygame.Color('white'))
+            intro_rect = string_rendered.get_rect()
+            intro_rect.x = (WIDTH - intro_rect[2]) / 2
+            intro_rect.top = HEIGHT * 3 / 4 - intro_rect[3] / 2
+            screen.blit(string_rendered, intro_rect)
         pygame.display.flip()
-    print(coins)
+    pygame.quit()
+
+
+def boss_level():
+    global level, level_num, coins, entities, animatedEntities, \
+        monsters, platforms, JUMP_POWER, boss_attacks
+
+    pygame.mouse.set_visible(False)
+
+    entities = pygame.sprite.Group()  # Все объекты
+    animatedEntities = pygame.sprite.Group()  # все анимированные объекты, за исключением героя
+    monsters = pygame.sprite.Group()  # Все передвигающиеся объекты
+    platforms = []  # то, во что мы будем врезаться или опираться
+    boss_attacks = []  # атаки босса
+
+    bg = pygame.transform.scale(load_image('boss_bg.png', ''), SIZE)
+
+    coins = 0
+
+    level = []
+    loadLevel('boss_level.txt')
+    level_num = '7'
+    LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
+
+    JUMP_POWER = 13
+
+    for y in range(LEVEL_HEIGHT):
+        for x in range(LEVEL_WIDTH):
+            coord_x = x * CELL_SIZE
+            coord_y = y * CELL_SIZE
+            if level[y][x] == "-":
+                image = load_image("block.png")
+                pt = BLock(coord_x, coord_y, image)
+                platforms.append(pt)
+            if level[y][x] == "_":
+                pt = Invisible_BLock(coord_x, coord_y)
+                platforms.append(pt)
+
+    hero = Hero(playerX, playerY)
+
+    boss = Boss(22 * CELL_SIZE, 9 * CELL_SIZE - 10)
+    platforms.append(boss)
+
+    total_level_width = LEVEL_WIDTH * CELL_SIZE  # Высчитываем фактическую ширину уровня
+    total_level_height = LEVEL_HEIGHT * CELL_SIZE  # высоту
+
+    camera = Camera(camera_configure, total_level_width, total_level_height)
+
+    pygame.time.set_timer(pygame.USEREVENT, 1000)
+    seconds = 0
+
+    start = True
+    stay_right = True
+    left = right = up = False
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame.USEREVENT:
+                seconds += 1
+                if seconds == 120:
+                    finish_level(user_name, level_num, coins)
+                if not seconds % 1 and len(boss_attacks) < 2:
+                    ba = Boss_Attack(boss.rect.x, choice((1, 5, 10)) * CELL_SIZE)
+                    boss_attacks.append(ba)
+                    platforms.append(ba)
+
+            if event.type == KEYDOWN and event.key == K_p:
+                start = not start
+
+            if event.type == KEYDOWN and event.key == K_r:
+                level_run(level_num)
+
+            if event.type == KEYDOWN and event.key == K_ESCAPE:
+                menu_start()
+
+            if event.type == KEYDOWN and event.key == K_a:
+                left = True
+                stay_right = False
+            if event.type == KEYDOWN and event.key == K_d:
+                right = True
+                stay_right = True
+
+            if event.type == KEYUP and event.key == K_d:
+                right = False
+            if event.type == KEYUP and event.key == K_a:
+                left = False
+
+            if event.type == KEYDOWN and event.key == K_SPACE:
+                up = True
+            if event.type == KEYUP and event.key == K_SPACE:
+                up = False
+
+        tick = clock.tick(FPS)
+        screen.blit(bg, (0, 0))
+        entities.update(LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms, stay_right)
+        camera.update(hero)
+        for e in entities:
+            screen.blit(e.image, camera.apply(e))
+        pygame.display.flip()
     pygame.quit()
 
 
