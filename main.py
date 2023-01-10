@@ -5,7 +5,6 @@ import pygame
 import pyganim
 import pygame_menu
 from pathlib import Path
-from random import choice
 from typing import *
 from constants import *
 
@@ -34,7 +33,7 @@ def sound_load(sound_path: str = 'data/sounds') -> dict:
 sounds = sound_load()
 
 
-def loadLevel(level_num):
+def loadLevel(level_num: str) -> list:
     """
     Загрузка уровня
     """
@@ -42,6 +41,7 @@ def loadLevel(level_num):
 
     levelFile = open(f'%s/data/levels/{level_num}' % FILE_DIR)
     line = " "
+    level = []
     all_coins = 0
     while line[0] != "/":  # пока не нашли символ завершения файла
         line = levelFile.readline()  # считываем построчно
@@ -88,9 +88,10 @@ def loadLevel(level_num):
                     all_coins += 1
                     platforms.append(c)
                     animatedEntities.add(c)
+    return level
 
 
-def load_image(name: str, directory='blocks', colorkey=None) -> pygame.Surface:
+def load_image(name: str, directory: str = 'blocks', colorkey=None) -> pygame.Surface:
     fullname = os.path.join(f'data/{directory}', name)
     # если файл не существует, то выходим
     if not os.path.isfile(fullname):
@@ -108,7 +109,7 @@ def load_image(name: str, directory='blocks', colorkey=None) -> pygame.Surface:
 
 
 class Monster(sprite.Sprite):
-    def __init__(self, x, y, left, maxLengthLeft, ANIMATION, num):
+    def __init__(self, x: int, y: int, left: int, maxLengthLeft: int, ANIMATION: list, num: str) -> None:
         """
         Монстр
         """
@@ -125,7 +126,7 @@ class Monster(sprite.Sprite):
         self.startX = x  # начальные координаты
         self.startY = y
         self.maxLengthLeft = maxLengthLeft  # максимальное расстояние, которое может пройти в одну сторону
-        self.xvel = 1  # cкорость передвижения по горизонтали, 0 - стоит на месте
+        self.xvel = left  # cкорость передвижения по горизонтали, 0 - стоит на месте
 
         animation_speed = 100
         if num == '2':
@@ -144,7 +145,7 @@ class Monster(sprite.Sprite):
         self.boltAnimLeft.flip(True, False)
         self.boltAnimLeft.play()
 
-    def update(self, *args):  # по принципу героя
+    def update(self, *args) -> None:  # по принципу героя
 
         self.image.fill(MONSTER_COLOR)
         if self.xvel > 0:
@@ -159,7 +160,7 @@ class Monster(sprite.Sprite):
         if abs(self.startX - self.rect.x) > self.maxLengthLeft:
             self.xvel = -self.xvel  # если прошли максимальное растояние, то идем в обратную сторону
 
-    def collide(self, platforms):
+    def collide(self, platforms: list) -> None:
         for p in platforms:
             if sprite.collide_rect(self, p) and self != p:  # если с чем-то или кем-то столкнулись
                 self.xvel = -self.xvel  # то поворачиваем в обратную сторону
@@ -168,7 +169,7 @@ class Monster(sprite.Sprite):
 class Flying_Monster(sprite.Sprite):
     image = load_image('f2.png', 'monsters/fl')
 
-    def __init__(self, x, y, left, up, maxLengthLeft, maxLengthUp):
+    def __init__(self, x: int, y: int, left: int, up: float, maxLengthLeft: int, maxLengthUp: int) -> None:
         """
         Летающий монстр
         """
@@ -199,7 +200,7 @@ class Flying_Monster(sprite.Sprite):
         self.boltAnimLeft.flip(True, False)
         self.boltAnimLeft.play()
 
-    def update(self, *args):  # по принципу героя
+    def update(self, *args) -> None:  # по принципу героя
 
         self.image.fill(FLYING_MONSTER_COLOR)
         if self.xvel > 0:
@@ -217,7 +218,7 @@ class Flying_Monster(sprite.Sprite):
         if abs(self.startY - self.rect.y) > self.maxLengthUp:
             self.yvel = -self.yvel  # если прошли максимальное растояние, то идеи в обратную сторону, вертикаль
 
-    def collide(self, platforms):
+    def collide(self, platforms: list) -> None:
         for p in platforms:
             if sprite.collide_rect(self, p) and self != p:  # если с чем-то или кем-то столкнулись
                 self.xvel = -self.xvel  # то поворачиваем в обратную сторону
@@ -227,7 +228,7 @@ class Flying_Monster(sprite.Sprite):
 class Boss(sprite.Sprite):
     image = load_image('1.png', 'boss')
 
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int) -> None:
         """
         Босс
         """
@@ -248,7 +249,7 @@ class Boss(sprite.Sprite):
         self.boltAnim.scale((self.rect[2], self.rect[3]))
         self.boltAnim.play()
 
-    def update(self, *args):
+    def update(self, *args) -> None:
         self.image.fill(WHITE)
         self.boltAnim.blit(self.image, (0, 0))
 
@@ -256,7 +257,7 @@ class Boss(sprite.Sprite):
 class Boss_Attack(sprite.Sprite):
     image = load_image('attack.png', 'boss')
 
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int) -> None:
         """
         Атака Босса
         """
@@ -269,7 +270,7 @@ class Boss_Attack(sprite.Sprite):
         self.rect.y = y
         self.vx = -10
 
-    def update(self, *args):
+    def update(self, *args) -> None:
         self.rect.x += self.vx
         if self.rect.x < 50:
             boss_attacks.pop(0)
@@ -278,7 +279,7 @@ class Boss_Attack(sprite.Sprite):
 
 
 class BLock(sprite.Sprite):
-    def __init__(self, x, y, image=load_image('block.png')):
+    def __init__(self, x: int, y: int, image: pygame.Surface = load_image('block.png')) -> None:
         """
         Обычный блок
         """
@@ -288,28 +289,28 @@ class BLock(sprite.Sprite):
 
 
 class Invisible_BLock(BLock):
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int) -> None:
         super().__init__(x, y)
         self.image.set_alpha(0)
 
 
 class Secret_BLock(BLock):
-    def __init__(self, x, y, image=load_image('block.png')):
+    def __init__(self, x: int, y: int, image: pygame.Surface = load_image('block.png')) -> None:
         """
         Блок-секретка
         """
         super().__init__(x, y, image)
         self.img = pygame.transform.scale(image, (CELL_SIZE, CELL_SIZE))
 
-    def hide(self):
+    def hide(self) -> None:
         self.image.set_alpha(128)
 
-    def show(self):
+    def show(self) -> None:
         self.image.set_alpha(255)
 
 
 class BLockDie(BLock):
-    def __init__(self, x, y, image):
+    def __init__(self, x: int, y: int, image: pygame.Surface) -> None:
         """
         Убивающий блок
         """
@@ -317,7 +318,7 @@ class BLockDie(BLock):
 
 
 class BLockTeleport(BLock):
-    def __init__(self, x, y, goX, goY):
+    def __init__(self, x: int, y: int, goX: int, goY: int) -> None:
         """
         Телепорт
         """
@@ -331,13 +332,13 @@ class BLockTeleport(BLock):
         self.boltAnim.scale((CELL_SIZE, CELL_SIZE))
         self.boltAnim.play()
 
-    def update(self, *args):
+    def update(self, *args) -> None:
         self.image.fill(COLOR)
         self.boltAnim.blit(self.image, (0, 0))
 
 
 class Coin(BLock):
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int) -> None:
         """
         Монетка
         """
@@ -346,7 +347,7 @@ class Coin(BLock):
 
 
 class Flag(BLock):
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int) -> None:
         super().__init__(x, y)
         boltAnim = []
         for anim in ANIMATION_FLAG:
@@ -360,7 +361,7 @@ class Flag(BLock):
         self.boltAnim.blit(self.image, (0, 0))
 
 
-def finish_level(user_name, level_num, coins):
+def finish_level(user_name: str, level_num: str, coins: int) -> None:
     update_bd(user_name, level_num, coins)
     result_screen()
 
@@ -368,7 +369,7 @@ def finish_level(user_name, level_num, coins):
 class Hero(sprite.Sprite):
     image = load_image('sr.png', 'hero')
 
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int) -> None:
         """
         Игровой персонаж
         """
@@ -425,7 +426,8 @@ class Hero(sprite.Sprite):
         self.boltAnimJumpStayLeft.flip(True, False)
         self.boltAnimJumpStayLeft.play()
 
-    def update(self, LEVEL_WIDTH, LEVEL_HEIGHT, left, right, up, platforms, stay_right, *args):
+    def update(self, LEVEL_WIDTH: int, LEVEL_HEIGHT: int, left: bool, right: bool, up: bool, platforms: list,
+               stay_right: bool, *args) -> None:
         if self.rect.y < 0 or self.rect.y > LEVEL_HEIGHT * CELL_SIZE \
                 or self.rect.x < 0 or self.rect.x > LEVEL_WIDTH * CELL_SIZE:
             self.teleporting(*self.start_coords)
@@ -475,7 +477,7 @@ class Hero(sprite.Sprite):
         self.rect.x += self.xvel  # переносим свои положение на xvel
         self.collide(self.xvel, 0)
 
-    def collide(self, xvel, yvel):
+    def collide(self, xvel: int, yvel: float) -> None:
         global coins
         for p in platforms:
             if (isinstance(p, Boss) or isinstance(p, Boss_Attack)) and sprite.collide_mask(self, p):
@@ -483,7 +485,7 @@ class Hero(sprite.Sprite):
 
             if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
                 if isinstance(p, Flag):  # если пересакаемый блок - Flag
-                    finish_level(user_name, int(level_num), coins)  # конец уровня
+                    finish_level(user_name, level_num, coins)  # конец уровня
                     continue
 
                 if isinstance(p, Secret_BLock):  # если пересакаемый блок - Secret_BLock
@@ -542,18 +544,18 @@ class Hero(sprite.Sprite):
                 if isinstance(p, Secret_BLock):  # если непересакаемый блок - Secret_BLock
                     p.show()  # блок появляется
 
-    def die(self):
+    def die(self) -> None:
         sounds['you_died'].play()
         death_screen()
 
-    def teleporting(self, goX, goY):
+    def teleporting(self, goX: int, goY: int) -> None:
         self.rect.x = goX
         self.rect.y = goY
 
 
 # MENU
 
-def change_name(value):
+def change_name(value: str) -> None:
     """
     Меняем глобальное имя пользователя, опять же чтоб не мучаться с пробром имени между меню и игрой.
     """
@@ -655,7 +657,7 @@ def menu_start() -> None:
     menu.mainloop(screen)
 
 
-def menu_level():
+def menu_level() -> None:
     """
     menu Levels/Play
     """
@@ -681,7 +683,7 @@ def menu_level():
     level_menu.mainloop(screen)
 
 
-def get_levels(user_name):
+def get_levels(user_name : str) -> tuple:
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
 
@@ -693,7 +695,7 @@ def get_levels(user_name):
     return result
 
 
-def get_all_coins(user_name):
+def get_all_coins(user_name: str) -> tuple:
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
 
@@ -705,7 +707,7 @@ def get_all_coins(user_name):
     return result
 
 
-def update_name(user_name):
+def update_name(user_name: str) -> None:
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
 
@@ -720,7 +722,7 @@ def update_name(user_name):
     con.close()
 
 
-def update_bd(user_name, level_num, coins):
+def update_bd(user_name: str, level_num: str, coins: int) -> None:
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
 
@@ -773,21 +775,20 @@ def update_bd(user_name, level_num, coins):
     con.close()
 
 
-def get_results():
+def get_results() -> list:
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
 
     result = cur.execute(f"""SELECT name, all_coins FROM results""").fetchall()
 
     result.sort(key=lambda x: x[1], reverse=True)
-    print(result)
 
     con.close()
 
     return result[:10]
 
 
-def start_screen():
+def start_screen() -> None:
     fon = Surface(SIZE)
     fon.fill(BLACK)
     screen.blit(fon, (0, 0))
@@ -818,7 +819,7 @@ def start_screen():
     pygame.quit()
 
 
-def death_screen():
+def death_screen() -> None:
     bg = Surface(SIZE)
     bg.fill(BLACK)
     screen.blit(bg, (0, 0))
@@ -853,7 +854,7 @@ def death_screen():
     pygame.quit()
 
 
-def result_screen():
+def result_screen() -> None:
     global level_num
 
     sounds['victory_achieved'].play()
@@ -920,18 +921,18 @@ class Camera(object):
     Камера
     """
 
-    def __init__(self, camera_func, width, height):
+    def __init__(self, camera_func: Any, width: float, height: float) -> None:
         self.camera_func = camera_func
         self.state = Rect(0, 0, width, height)
 
-    def apply(self, target):
+    def apply(self, target: pygame.sprite.Sprite) -> None:
         return target.rect.move(self.state.topleft)
 
-    def update(self, target):
+    def update(self, target: pygame.sprite.Sprite) -> None:
         self.state = self.camera_func(self.state, target.rect)
 
 
-def camera_configure(camera, target_rect):
+def camera_configure(camera: pygame.Rect, target_rect: pygame.Rect) -> pygame.Rect:
     lf, t, _, _ = target_rect
     _, _, w, h = camera
     lf, t = -lf + WIDTH / 2, -t + HEIGHT / 2
@@ -951,7 +952,7 @@ platforms = []  # то, во что мы будем врезаться или о
 boss_attacks = []  # атаки босса
 
 
-def level_run(levelnum):
+def level_run(levelnum: str) -> None:
     global level, level_num, coins, entities, animatedEntities, monsters, platforms, JUMP_POWER
 
     pygame.mouse.set_visible(False)
@@ -966,9 +967,9 @@ def level_run(levelnum):
 
     coins = 0
 
-    level = []
+    level = loadLevel(f'{levelnum}.txt')
     level_num = levelnum
-    loadLevel(f'{levelnum}.txt')
+
     LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
 
     JUMP_POWER = 11
@@ -1059,7 +1060,7 @@ def level_run(levelnum):
     pygame.quit()
 
 
-def boss_level():
+def boss_level() -> None:
     global level, level_num, coins, entities, animatedEntities, \
         monsters, platforms, JUMP_POWER, boss_attacks
 
@@ -1075,8 +1076,8 @@ def boss_level():
 
     coins = 0
 
-    level = []
-    loadLevel('boss_level.txt')
+    level = loadLevel('boss_level.txt')
+
     level_num = '7'
     LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
 
@@ -1107,7 +1108,7 @@ def boss_level():
     pygame.time.set_timer(pygame.USEREVENT, 1000)
     seconds = 0
     finish = 120
-    num = 2
+    num = 1
 
     start = True
     stay_right = True
