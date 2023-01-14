@@ -21,7 +21,6 @@ all_coins = 0
 
 # TODO: Сделать анимацию атаки босса
 
-
 def sound_load(sound_path: str = 'data/sounds') -> dict:
     """Загружает словарь звуков"""
     sound_files = [f for f in os.listdir(sound_path) if os.path.isfile(os.path.join(sound_path, f))]
@@ -1108,7 +1107,7 @@ def boss_level() -> None:
     pygame.time.set_timer(pygame.USEREVENT, 1000)
     seconds = 0
     finish = 120
-    num = 1
+    num = 2
 
     start = True
     stay_right = True
@@ -1125,7 +1124,7 @@ def boss_level() -> None:
                     finish_level(user_name, level_num, coins)
                 if seconds == finish // 2:
                     num += 1
-                if not seconds % 1 and len(boss_attacks) < num:
+                if len(boss_attacks) < num:
                     line = 0
                     if hero.rect.y > CELL_SIZE and hero.rect.y + hero.rect.width < CELL_SIZE * 6:
                         line = 1
