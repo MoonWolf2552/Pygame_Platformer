@@ -48,34 +48,34 @@ FLYING_MONSTER_COLOR = Color("#2110FF")
 ICON_DIR = os.path.dirname(__file__)  # Полный путь к каталогу с файлами
 FILE_DIR = os.path.dirname(__file__)
 
-ANIMATION_MONSTERH1 = [('%s/data/monsters/1/r1.png' % ICON_DIR),
-                       ('%s/data/monsters/1/r2.png' % ICON_DIR),
-                       ('%s/data/monsters/1/r3.png' % ICON_DIR),
-                       ('%s/data/monsters/1/r4.png' % ICON_DIR),
-                       ('%s/data/monsters/1/r5.png' % ICON_DIR),
-                       ('%s/data/monsters/1/r6.png' % ICON_DIR)]
-ANIMATION_MONSTERH2 = [('%s/data/monsters/2/r1.png' % ICON_DIR),
-                       ('%s/data/monsters/2/r2.png' % ICON_DIR),
-                       ('%s/data/monsters/2/r3.png' % ICON_DIR),
-                       ('%s/data/monsters/2/r4.png' % ICON_DIR),
-                       ('%s/data/monsters/2/r5.png' % ICON_DIR),
-                       ('%s/data/monsters/2/r6.png' % ICON_DIR),
-                       ('%s/data/monsters/2/r7.png' % ICON_DIR),
-                       ('%s/data/monsters/2/r8.png' % ICON_DIR)]
-ANIMATION_MONSTERVERTICAL = [('%s/data/monsters/fl/f2.png' % ICON_DIR),
-                             ('%s/data/monsters/fl/f3.png' % ICON_DIR),
-                             ('%s/data/monsters/fl/f4.png' % ICON_DIR),
-                             ('%s/data/monsters/fl/f5.png' % ICON_DIR),
-                             ('%s/data/monsters/fl/f6.png' % ICON_DIR),
-                             ('%s/data/monsters/fl/f7.png' % ICON_DIR)]
+ANIMATION_MONSTERH1 = [('data/monsters/1/r1.png'),
+                       ('data/monsters/1/r2.png'),
+                       ('data/monsters/1/r3.png'),
+                       ('data/monsters/1/r4.png'),
+                       ('data/monsters/1/r5.png'),
+                       ('data/monsters/1/r6.png')]
+ANIMATION_MONSTERH2 = [('data/monsters/2/r1.png'),
+                       ('/data/monsters/2/r2.png'),
+                       ('/data/monsters/2/r3.png'),
+                       ('/data/monsters/2/r4.png'),
+                       ('/data/monsters/2/r5.png'),
+                       ('/data/monsters/2/r6.png'),
+                       ('/data/monsters/2/r7.png'),
+                       ('/data/monsters/2/r8.png')]
+ANIMATION_MONSTERVERTICAL = [('/data/monsters/fl/f2.png'),
+                             ('/data/monsters/fl/f3.png'),
+                             ('/data/monsters/fl/f4.png'),
+                             ('/data/monsters/fl/f5.png'),
+                             ('/data/monsters/fl/f6.png'),
+                             ('/data/monsters/fl/f7.png')]
 
-ANIMATION_FLAG = [('%s/data/flag/bonfire.png' % ICON_DIR)]
-ANIMATION_FLAG_COPY = [('%s/data/flag/flag1.png' % ICON_DIR),
-                       ('%s/data/flag/flag2.png' % ICON_DIR),
-                       ('%s/data/flag/flag3.png' % ICON_DIR),
-                       ('%s/data/flag/flag4.png' % ICON_DIR),
-                       ('%s/data/flag/flag5.png' % ICON_DIR)]
-ANIMATION_BOSS = [('%s/data/boss/1.png' % ICON_DIR),
-                  ('%s/data/boss/2.png' % ICON_DIR),
-                  ('%s/data/boss/3.png' % ICON_DIR),
-                  ('%s/data/boss/4.png' % ICON_DIR)]
+ANIMATION_FLAG = [('/data/flag/bonfire.png')]
+ANIMATION_FLAG_COPY = [('/data/flag/flag1.png'),
+                       ('/data/flag/flag2.png'),
+                       ('/data/flag/flag3.png'),
+                       ('/data/flag/flag4.png'),
+                       ('/data/flag/flag5.png')]
+ANIMATION_BOSS = [('/data/boss/1.png'),
+                  ('/data/boss/2.png'),
+                  ('/data/boss/3.png'),
+                  ('/data/boss/4.png')]
