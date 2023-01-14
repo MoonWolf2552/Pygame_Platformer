@@ -38,7 +38,7 @@ def loadLevel(level_num: str) -> list:
     """
     global playerX, playerY, all_coins  # объявляем глобальные переменные, это координаты героя
 
-    levelFile = open(f'/data/levels/{level_num}')
+    levelFile = open(f'data/levels/{level_num}')
     line = " "
     level = []
     all_coins = 0
