@@ -1015,6 +1015,7 @@ def level_run(levelnum: str) -> None:
     total_level_height = LEVEL_HEIGHT * CELL_SIZE  # высоту
 
     camera = Camera(camera_configure, total_level_width, total_level_height)
+    c = Coin(0, 0)
 
     start = True
     stay_right = True
@@ -1121,7 +1122,6 @@ def boss_level() -> None:
     seconds = 0
     finish = 120
     num = 2
-    c = Coin(0, 0)
 
     start = True
     stay_right = True
