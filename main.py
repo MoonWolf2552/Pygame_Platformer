@@ -108,10 +108,11 @@ def load_image(name: str, directory: str = 'blocks', colorkey=None) -> pygame.Su
 
 
 class Monster(sprite.Sprite):
+    """
+    Монстр, двигается по горизонтали
+    """
+
     def __init__(self, x: int, y: int, left: int, maxLengthLeft: int, ANIMATION: list, num: str) -> None:
-        """
-        Монстр
-        """
         super().__init__()
         Monster.image = load_image('r1.png', f'monsters/{num}')
         self.image = Monster.image
@@ -166,12 +167,12 @@ class Monster(sprite.Sprite):
 
 
 class Flying_Monster(sprite.Sprite):
+    """
+    Монстр, двигается по горизонтали и вертикали
+    """
     image = load_image('f2.png', 'monsters/fl')
 
     def __init__(self, x: int, y: int, left: int, up: float, maxLengthLeft: int, maxLengthUp: int) -> None:
-        """
-        Летающий монстр
-        """
         super().__init__()
         self.image = Flying_Monster.image
         self.rect = self.image.get_rect()
@@ -225,12 +226,12 @@ class Flying_Monster(sprite.Sprite):
 
 
 class Boss(sprite.Sprite):
+    """
+    Босс, не двигается
+    """
     image = load_image('1.png', 'boss')
 
     def __init__(self, x: int, y: int) -> None:
-        """
-        Босс
-        """
         super().__init__(entities)
         self.image = Boss.image
         self.rect = self.image.get_rect()
@@ -254,12 +255,12 @@ class Boss(sprite.Sprite):
 
 
 class Boss_Attack(sprite.Sprite):
+    """
+    Атака Босса, движется по горизонтали
+    """
     image = load_image('attack.png', 'boss')
 
     def __init__(self, x: int, y: int) -> None:
-        """
-        Атака Босса
-        """
         super().__init__(entities)
         self.image = pygame.transform.scale(Boss_Attack.image, (CELL_SIZE * 2, CELL_SIZE * 5))
         self.image.set_alpha(200)
@@ -278,10 +279,11 @@ class Boss_Attack(sprite.Sprite):
 
 
 class BLock(sprite.Sprite):
+    """
+    Обычный блок
+    """
+
     def __init__(self, x: int, y: int, image: pygame.Surface = load_image('block.png')) -> None:
-        """
-        Обычный блок
-        """
         super().__init__(entities)
         self.image = pygame.transform.scale(image, (CELL_SIZE, CELL_SIZE))
         self.rect = Rect(x, y, CELL_SIZE, CELL_SIZE)
@@ -294,10 +296,11 @@ class Invisible_BLock(BLock):
 
 
 class Secret_BLock(BLock):
+    """
+    Блок-секретка, исчезает при соприкосновении
+    """
+
     def __init__(self, x: int, y: int, image: pygame.Surface = load_image('block.png')) -> None:
-        """
-        Блок-секретка
-        """
         super().__init__(x, y, image)
         self.img = pygame.transform.scale(image, (CELL_SIZE, CELL_SIZE))
 
@@ -309,18 +312,21 @@ class Secret_BLock(BLock):
 
 
 class BLockDie(BLock):
+    """
+    Убивающий блок
+    """
+
     def __init__(self, x: int, y: int, image: pygame.Surface) -> None:
-        """
-        Убивающий блок
-        """
         super().__init__(x, y, image)
+        self.mask = pygame.mask.from_surface(self.image)
 
 
 class BLockTeleport(BLock):
+    """
+    Телепорт
+    """
+
     def __init__(self, x: int, y: int, goX: int, goY: int) -> None:
-        """
-        Телепорт
-        """
         super().__init__(x, y)
         self.goX = goX  # координаты назначения перемещения
         self.goY = goY  # координаты назначения перемещения
@@ -337,15 +343,20 @@ class BLockTeleport(BLock):
 
 
 class Coin(BLock):
+    """
+    Монетка
+    """
+
     def __init__(self, x: int, y: int) -> None:
-        """
-        Монетка
-        """
         super().__init__(x, y)
         self.image = pygame.transform.scale(load_image('coin.png', 'blocks'), (CELL_SIZE, CELL_SIZE))
 
 
 class Flag(BLock):
+    """
+    Конец уровня
+    """
+
     def __init__(self, x: int, y: int) -> None:
         super().__init__(x, y)
         boltAnim = []
@@ -366,12 +377,12 @@ def finish_level(user_name: str, level_num: str, coins: int) -> None:
 
 
 class Hero(sprite.Sprite):
+    """
+    Игровой персонаж
+    """
     image = load_image('sr.png', 'hero')
 
     def __init__(self, x: int, y: int) -> None:
-        """
-        Игровой персонаж
-        """
         super().__init__(entities)
         self.image = Hero.image
         self.rect = self.image.get_rect()
@@ -479,10 +490,14 @@ class Hero(sprite.Sprite):
     def collide(self, xvel: int, yvel: float) -> None:
         global coins
         for p in platforms:
-            if (isinstance(p, Boss) or isinstance(p, Boss_Attack)) and sprite.collide_mask(self, p):
-                self.die()
+            if sprite.collide_mask(self, p):
+                if isinstance(p, Boss) or isinstance(p, Boss_Attack):
+                    self.die()
 
             if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
+                if isinstance(p, Invisible_BLock):
+                    continue
+
                 if isinstance(p, Flag):  # если пересакаемый блок - Flag
                     finish_level(user_name, level_num, coins)  # конец уровня
                     continue
@@ -534,14 +549,11 @@ class Hero(sprite.Sprite):
                     else:
                         self.die()
 
-                if isinstance(p, BLockDie):  # если пересакаемый блок- BLockDie или Boss или Boss_Attack
-                    self.die()  # умираем
+                if isinstance(p, BLockDie):
+                    self.die()
 
-                elif isinstance(p, BLockTeleport):
+                if isinstance(p, BLockTeleport):
                     self.teleporting(p.goX, p.goY)
-            else:
-                if isinstance(p, Secret_BLock):  # если непересакаемый блок - Secret_BLock
-                    p.show()  # блок появляется
 
     def die(self) -> None:
         sounds['you_died'].play()
@@ -682,7 +694,7 @@ def menu_level() -> None:
     level_menu.mainloop(screen)
 
 
-def get_levels(user_name : str) -> tuple:
+def get_levels(user_name: str) -> tuple:
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
 
@@ -968,6 +980,7 @@ def level_run(levelnum: str) -> None:
 
     level = loadLevel(f'{levelnum}.txt')
     level_num = levelnum
+    print(len(level[0]))
 
     LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
 
@@ -1011,6 +1024,7 @@ def level_run(levelnum: str) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                pygame.quit()
 
             if event.type == KEYDOWN and event.key == K_p:
                 start = not start
@@ -1048,7 +1062,6 @@ def level_run(levelnum: str) -> None:
             for e in entities:
                 screen.blit(e.image, camera.apply(e))
         else:
-            one = False
             font = pygame.font.Font(None, 30)
             string_rendered = font.render('Press <P> to continue', True, pygame.Color('white'))
             intro_rect = string_rendered.get_rect()
@@ -1108,6 +1121,7 @@ def boss_level() -> None:
     seconds = 0
     finish = 120
     num = 2
+    c = Coin(0, 0)
 
     start = True
     stay_right = True
@@ -1117,6 +1131,7 @@ def boss_level() -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                pygame.quit()
 
             if event.type == pygame.USEREVENT:
                 seconds += 1
