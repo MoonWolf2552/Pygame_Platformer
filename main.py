@@ -19,8 +19,6 @@ level = []
 all_coins = 0
 
 
-# TODO: Сделать анимацию атаки босса
-
 def sound_load(sound_path: str = 'data/sounds') -> dict:
     """Загружает словарь звуков"""
     sound_files = [f for f in os.listdir(sound_path) if os.path.isfile(os.path.join(sound_path, f))]
@@ -33,13 +31,13 @@ def sound_load(sound_path: str = 'data/sounds') -> dict:
 sounds = sound_load()
 
 
-def loadLevel(level_num: str) -> list:
+def loadLevel(levelnum: str) -> list:
     """
     Загрузка уровня
     """
     global playerX, playerY, all_coins  # объявляем глобальные переменные, это координаты героя
 
-    levelFile = open(f'data/levels/{level_num}')
+    levelFile = open(f'data/levels/{levelnum}')
     line = " "
     level = []
     all_coins = 0
@@ -275,6 +273,7 @@ class Boss_Attack(sprite.Sprite):
         self.image.set_alpha(200)
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
+        self.rect.width = 0
         self.rect.x = x
         self.rect.y = y
         self.vx = -10
@@ -327,7 +326,7 @@ class BLockDie(BLock):
 
     def __init__(self, x: int, y: int, image: pygame.Surface) -> None:
         super().__init__(x, y, image)
-        self.rect.width = 1
+        self.rect.width = 0
         # self.image = pygame.transform.scale(image, (CELL_SIZE + 5, CELL_SIZE + 5))
         # self.rect = Rect(x, y, CELL_SIZE + 5, CELL_SIZE + 5)
         # self.mask = pygame.mask.from_surface(self.image)
@@ -371,20 +370,11 @@ class Flag(BLock):
 
     def __init__(self, x: int, y: int) -> None:
         super().__init__(x, y)
-        boltAnim = []
-        for anim in ANIMATION_FLAG:
-            boltAnim.append((anim, 100))
-        self.boltAnim = pyganim.PygAnimation(boltAnim)
-        self.boltAnim.scale((CELL_SIZE, CELL_SIZE * 1.5))
-        self.boltAnim.play()
-
-    def update(self, *args):
-        self.image.fill(COLOR)
-        self.boltAnim.blit(self.image, (0, 0))
+        self.image = pygame.transform.scale(load_image('bonfire.png', 'flag'), (CELL_SIZE, CELL_SIZE * 1.5))
 
 
-def finish_level(user_name: str, level_num: str, coins: int) -> None:
-    update_bd(user_name, level_num, coins)
+def finish_level(user_name: str, levelnum: int, coins: int) -> None:
+    update_bd(user_name, levelnum, coins)
     result_screen()
 
 
@@ -458,6 +448,7 @@ class Hero(sprite.Sprite):
         if up:
             if self.onGround:  # прыгаем, только когда можем оттолкнуться от земли
                 self.yvel = -JUMP_POWER
+                sounds['jump'].play()
             self.image.fill(COLOR)
             if stay_right:
                 self.boltAnimJumpStayRight.blit(self.image, (0, 0))
@@ -502,7 +493,7 @@ class Hero(sprite.Sprite):
     def collide(self, xvel: int, yvel: float) -> None:
         global coins
         for p in platforms:
-            if (isinstance(p, Boss) or isinstance(p, Boss_Attack) or isinstance(p, BLockDie))\
+            if (isinstance(p, Boss) or isinstance(p, Boss_Attack) or isinstance(p, BLockDie)) \
                     and sprite.collide_mask(self, p):
                 self.die()
                 continue
@@ -700,7 +691,7 @@ def menu_level() -> None:
     levels = get_levels(user_name)[0]
 
     for i in range(1, levels + 1):
-        level_menu.add.button(f'Level {str(i)}', level_run, str(i))
+        level_menu.add.button(f'Level {i}', level_run, i)
     if get_all_coins(user_name)[0] >= 18:
         level_menu.add.button(f'Boss Level', boss_level)
     level_menu.add.vertical_margin(30)
@@ -747,11 +738,11 @@ def update_name(user_name: str) -> None:
     con.close()
 
 
-def update_bd(user_name: str, level_num: str, coins: int) -> None:
+def update_bd(user_name: str, levelnum: int, coins: int) -> None:
     con = sqlite3.connect('data/results.sqlite')
     cur = con.cursor()
 
-    if level_num == '7':
+    if levelnum == 7:
         cur.execute(f"""UPDATE results
                         SET boss_level = 1
                         WHERE name = '{user_name}'""")
@@ -768,7 +759,7 @@ def update_bd(user_name: str, level_num: str, coins: int) -> None:
 
         return
 
-    result = cur.execute(f"""SELECT level{level_num} FROM results
+    result = cur.execute(f"""SELECT level{levelnum} FROM results
                                 WHERE name = '{user_name}'""").fetchone()
 
     if result[0] < coins:
@@ -777,11 +768,11 @@ def update_bd(user_name: str, level_num: str, coins: int) -> None:
         cs = result[0]
 
     cur.execute(f"""UPDATE results
-                SET level{level_num} = {cs}
+                SET level{levelnum} = {cs}
                 WHERE name = '{user_name}'""")
 
-    if get_levels(user_name)[0] == int(level_num) and int(level_num) < all_levels - 1:
-        ln = int(level_num) + 1
+    if get_levels(user_name)[0] == levelnum and levelnum < all_levels - 1:
+        ln = levelnum + 1
     else:
         ln = get_levels(user_name)[0]
 
@@ -870,7 +861,7 @@ def death_screen() -> None:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == K_SPACE:
                 sounds['you_died'].stop()
-                if level_num != '7':
+                if level_num < 7:
                     level_run(level_num)
                 else:
                     boss_level()
@@ -929,9 +920,9 @@ def result_screen() -> None:
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == K_SPACE:
-                if level_num != '6' and level_num != '7':
+                if level_num < 6:
                     sounds['victory_achieved'].stop()
-                    level_num = str(int(level_num) + 1)
+                    level_num += 1
                     level_run(level_num)
             if event.type == pygame.KEYDOWN and event.key == K_m:
                 sounds['victory_achieved'].stop()
@@ -970,10 +961,34 @@ def camera_configure(camera: pygame.Rect, target_rect: pygame.Rect) -> pygame.Re
     return Rect(lf, t, w, h)
 
 
-def coin_score(coins):
+def coin_timer(coins: int, timer: int, levelnum: int, c: Coin) -> None:
     font = pygame.font.Font(None, 60)
-    string_rendered = font.render(f'{coins}/{all_coins}', True, GOLD)
-    screen.blit(string_rendered, (50, 15))
+    coins = font.render(f'{coins}/{all_coins}', True, GOLD)
+
+    time = font.render(f'{timer // 60:02}:{timer % 60:02}', True, WHITE)
+
+    level = font.render(f'Level {levelnum}', True, WHITE)
+    level_rect = level.get_rect()
+
+    rect = Surface((level_rect.width + 2, level_rect.height * 3))
+    rect.fill(BLACK)
+    screen.blit(rect, (0, 0))
+    screen.blit(level, (0, 0))
+    screen.blit(c.image, (-5, 25))
+    screen.blit(coins, (50, 42))
+    screen.blit(time, (0, 85))
+
+
+def boss_timer(seconds: int) -> None:
+    font = pygame.font.Font(None, 60)
+    time = font.render('10:59', True, WHITE)
+    time_rect = time.get_rect()
+    time = font.render(f'{seconds // 60:02}:{seconds % 60:02}', True, WHITE)
+
+    rect = Surface((time_rect.width + 2, time_rect.height + 7))
+    rect.fill(BLACK)
+    screen.blit(rect, (0, 0))
+    screen.blit(time, (0, 7))
 
 
 entities = pygame.sprite.Group()  # Все объекты
@@ -983,7 +998,7 @@ platforms = []  # то, во что мы будем врезаться или о
 boss_attacks = []  # атаки босса
 
 
-def level_run(levelnum: str) -> None:
+def level_run(levelnum: int) -> None:
     global level, level_num, coins, entities, animatedEntities, monsters, platforms, JUMP_POWER
 
     pygame.mouse.set_visible(False)
@@ -993,8 +1008,7 @@ def level_run(levelnum: str) -> None:
     monsters = pygame.sprite.Group()  # Все передвигающиеся объекты
     platforms = []  # то, во что мы будем врезаться или опираться
 
-    bg = Surface(SIZE)
-    bg.fill(COLOR)
+    bg = pygame.transform.scale(load_image('bg.png', ''), SIZE)
 
     coins = 0
 
@@ -1036,6 +1050,9 @@ def level_run(levelnum: str) -> None:
     camera = Camera(camera_configure, total_level_width, total_level_height)
     c = Coin(hero.rect.x + 100, hero.rect.y - 100)
 
+    pygame.time.set_timer(pygame.USEREVENT, 1000)
+    timer = 120
+
     start = True
     stay_right = True
     left = right = up = False
@@ -1045,6 +1062,11 @@ def level_run(levelnum: str) -> None:
             if event.type == pygame.QUIT:
                 running = False
                 pygame.quit()
+
+            if event.type == pygame.USEREVENT:
+                timer -= 1
+                if timer <= 0:
+                    hero.die()
 
             if event.type == KEYDOWN and event.key == K_p:
                 start = not start
@@ -1082,8 +1104,7 @@ def level_run(levelnum: str) -> None:
             c.rect.topleft = camera.state.topleft
             for e in entities:
                 screen.blit(e.image, camera.apply(e))
-            coin_score(coins)
-            screen.blit(c.image, (0, 0))
+            coin_timer(coins, timer, levelnum, c)
         else:
             font = pygame.font.Font(None, 30)
             string_rendered = font.render('Press <P> to continue', True, pygame.Color('white'))
@@ -1113,7 +1134,7 @@ def boss_level() -> None:
 
     level = loadLevel('boss_level.txt')
 
-    level_num = '7'
+    level_num = 7
     LEVEL_SIZE = LEVEL_WIDTH, LEVEL_HEIGHT = len(level[0]), len(level)
 
     JUMP_POWER = 13
@@ -1141,8 +1162,7 @@ def boss_level() -> None:
     camera = Camera(camera_configure, total_level_width, total_level_height)
 
     pygame.time.set_timer(pygame.USEREVENT, 1000)
-    seconds = 0
-    finish = 120
+    seconds = 120
     num = 2
 
     start = True
@@ -1156,11 +1176,9 @@ def boss_level() -> None:
                 pygame.quit()
 
             if event.type == pygame.USEREVENT:
-                seconds += 1
-                if seconds == finish:
+                seconds -= 1
+                if seconds <= 0:
                     finish_level(user_name, level_num, coins)
-                if seconds == finish // 2:
-                    num += 1
                 if len(boss_attacks) < num:
                     line = 0
                     if hero.rect.y > CELL_SIZE and hero.rect.y + hero.rect.width < CELL_SIZE * 6:
@@ -1207,6 +1225,7 @@ def boss_level() -> None:
         camera.update(hero)
         for e in entities:
             screen.blit(e.image, camera.apply(e))
+        boss_timer(seconds)
         pygame.display.flip()
     pygame.quit()
 

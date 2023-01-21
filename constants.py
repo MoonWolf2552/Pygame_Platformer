@@ -21,7 +21,6 @@ colors = {
 }
 COLOR = WHITE
 CELL_SIZE = 50
-HERO_SIZE = HERO_WIDTH, HERO_HEIGT = CELL_SIZE, CELL_SIZE
 MOVE_SPEED = 300 / FPS
 JUMP_POWER = 11
 GRAVITY = 26.25 / FPS
@@ -67,7 +66,6 @@ ANIMATION_MONSTERVERTICAL = [('data/monsters/fl/f2.png'),
                              ('data/monsters/fl/f6.png'),
                              ('data/monsters/fl/f7.png')]
 
-ANIMATION_FLAG = [('data/flag/bonfire.png')]
 ANIMATION_FLAG_COPY = [('data/flag/flag1.png'),
                        ('data/flag/flag2.png'),
                        ('data/flag/flag3.png'),
