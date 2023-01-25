@@ -76,7 +76,7 @@ def loadLevel(levelnum: str) -> list:
                     monsters.add(mn)
 
                 if commands[
-                    0] == "flying_monster":  # если первая команда monster, то создаем монстра
+                    0] == "flying_monster":  # если первая команда flying_monster, то создаем летающего монстра
                     fl_mn = Flying_Monster(int(commands[1]) * CELL_SIZE,
                                            int(commands[2]) * CELL_SIZE,
                                            int(commands[3]), float(commands[4]),
@@ -182,7 +182,7 @@ class Flying_Monster(sprite.Sprite):
         super().__init__()
         self.image = Flying_Monster.image
         self.rect = self.image.get_rect()
-        soo = CELL_SIZE / self.rect[3]
+        soo = CELL_SIZE * 1.2 / self.rect[2]
         self.image = pygame.transform.scale(Flying_Monster.image,
                                             (self.rect[2] * soo, self.rect[3] * soo))
         self.rect = self.image.get_rect()
@@ -226,10 +226,13 @@ class Flying_Monster(sprite.Sprite):
             self.yvel = -self.yvel  # если прошли максимальное растояние, то идеи в обратную сторону, вертикаль
 
     def collide(self, platforms: list) -> None:
+        print(self.rect)
         for p in platforms:
             if sprite.collide_rect(self, p) and self != p:  # если с чем-то или кем-то столкнулись
-                self.xvel = -self.xvel  # то поворачиваем в обратную сторону
-                self.yvel = -self.yvel
+                if p.rect.right > self.rect.centerx > p.rect.x and self.rect.centerx:
+                    self.yvel = -self.yvel
+                if p.rect.bottom > self.rect.centery > self.rect.y:
+                    self.xvel = -self.xvel  # то поворачиваем в обратную сторону
 
 
 class Boss(sprite.Sprite):
@@ -237,6 +240,8 @@ class Boss(sprite.Sprite):
     Босс, не двигается
     """
     image = load_image('1.png', 'boss')
+
+    # TODO: Сделать анимацию атаки босса
 
     def __init__(self, x: int, y: int) -> None:
         super().__init__(entities)
@@ -341,6 +346,7 @@ class BLockTeleport(BLock):
         super().__init__(x, y)
         self.goX = goX  # координаты назначения перемещения
         self.goY = goY  # координаты назначения перемещения
+        self.image.set_colorkey(COLOR)
         boltAnim = []
         for anim in ANIMATION_BLOCKTELEPORT:
             boltAnim.append((anim, 1))
@@ -1038,6 +1044,11 @@ def level_run(levelnum: int) -> None:
                 image = load_image("block_die.png")
                 pt = BLockDie(coord_x, coord_y, image)
                 platforms.append(pt)
+            if level[y][x] == "T":
+                image = load_image("block_die.png")
+                image = pygame.transform.flip(image, False, True)
+                pt = BLockDie(coord_x, coord_y, image)
+                platforms.append(pt)
             if level[y][x] == "F":
                 pt = Flag(coord_x, coord_y)
                 platforms.append(pt)
@@ -1089,9 +1100,9 @@ def level_run(levelnum: int) -> None:
             if event.type == KEYUP and event.key == K_a:
                 left = False
 
-            if event.type == KEYDOWN and event.key == K_SPACE:
+            if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_w):
                 up = True
-            if event.type == KEYUP and event.key == K_SPACE:
+            if event.type == KEYUP and (event.key == K_SPACE or event.key == K_w):
                 up = False
 
         tick = clock.tick(FPS)
@@ -1214,9 +1225,9 @@ def boss_level() -> None:
             if event.type == KEYUP and event.key == K_a:
                 left = False
 
-            if event.type == KEYDOWN and event.key == K_SPACE:
+            if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_w):
                 up = True
-            if event.type == KEYUP and event.key == K_SPACE:
+            if event.type == KEYUP and (event.key == K_SPACE or event.key == K_w):
                 up = False
 
         tick = clock.tick(FPS)
