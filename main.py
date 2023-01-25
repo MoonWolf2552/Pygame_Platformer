@@ -226,7 +226,6 @@ class Flying_Monster(sprite.Sprite):
             self.yvel = -self.yvel  # если прошли максимальное растояние, то идеи в обратную сторону, вертикаль
 
     def collide(self, platforms: list) -> None:
-        print(self.rect)
         for p in platforms:
             if sprite.collide_rect(self, p) and self != p:  # если с чем-то или кем-то столкнулись
                 if p.rect.right > self.rect.centerx > p.rect.x and self.rect.centerx:
