@@ -241,8 +241,6 @@ class Boss(sprite.Sprite):
     """
     image = load_image('1.png', 'boss')
 
-    # TODO: Сделать анимацию атаки босса
-
     def __init__(self, x: int, y: int) -> None:
         super().__init__(entities)
         self.image = Boss.image
