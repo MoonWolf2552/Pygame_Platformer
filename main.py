@@ -75,9 +75,8 @@ def loadLevel(levelnum: str) -> list:
                     platforms.append(mn)
                     monsters.add(mn)
 
-                if commands[
-                    0] == "flying_monster":  # если первая команда flying_monster, то создаем летающего монстра
-                    fl_mn = Flying_Monster(int(commands[1]) * CELL_SIZE,
+                if commands[0] == "flying_monster":  # если первая команда flying_monster, то создаем летающего монстра
+                    fl_mn = FlyingMonster(int(commands[1]) * CELL_SIZE,
                                            int(commands[2]) * CELL_SIZE,
                                            int(commands[3]), float(commands[4]),
                                            int(commands[5]) * CELL_SIZE,
@@ -171,7 +170,7 @@ class Monster(sprite.Sprite):
                 self.xvel = -self.xvel  # то поворачиваем в обратную сторону
 
 
-class Flying_Monster(sprite.Sprite):
+class FlyingMonster(sprite.Sprite):
     """
     Монстр, двигается по горизонтали и вертикали
     """
@@ -180,10 +179,10 @@ class Flying_Monster(sprite.Sprite):
     def __init__(self, x: int, y: int, left: int, up: float, maxLengthLeft: int,
                  maxLengthUp: int) -> None:
         super().__init__()
-        self.image = Flying_Monster.image
+        self.image = FlyingMonster.image
         self.rect = self.image.get_rect()
         soo = CELL_SIZE * 1.2 / self.rect[2]
-        self.image = pygame.transform.scale(Flying_Monster.image,
+        self.image = pygame.transform.scale(FlyingMonster.image,
                                             (self.rect[2] * soo, self.rect[3] * soo))
         self.rect = self.image.get_rect()
         self.image.set_colorkey(FLYING_MONSTER_COLOR)
@@ -263,7 +262,7 @@ class Boss(sprite.Sprite):
         self.boltAnim.blit(self.image, (0, 0))
 
 
-class Boss_Attack(sprite.Sprite):
+class BossAttack(sprite.Sprite):
     """
     Атака Босса, движется по горизонтали
     """
@@ -271,7 +270,7 @@ class Boss_Attack(sprite.Sprite):
 
     def __init__(self, x: int, y: int) -> None:
         super().__init__(entities)
-        self.image = pygame.transform.scale(Boss_Attack.image, (CELL_SIZE * 2, CELL_SIZE * 5))
+        self.image = pygame.transform.scale(BossAttack.image, (CELL_SIZE * 2, CELL_SIZE * 5))
         self.image.set_alpha(200)
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
@@ -299,13 +298,13 @@ class BLock(sprite.Sprite):
         self.rect = Rect(x, y, CELL_SIZE, CELL_SIZE)
 
 
-class Invisible_BLock(BLock):
+class InvisibleBLock(BLock):
     def __init__(self, x: int, y: int) -> None:
         super().__init__(x, y)
         self.image.set_alpha(0)
 
 
-class Secret_BLock(BLock):
+class SecretBLock(BLock):
     """
     Блок-секретка, исчезает при соприкосновении
     """
@@ -496,20 +495,20 @@ class Hero(sprite.Sprite):
     def collide(self, xvel: int, yvel: float) -> None:
         global coins
         for p in platforms:
-            if (isinstance(p, Boss) or isinstance(p, Boss_Attack) or isinstance(p, BLockDie)) \
+            if (isinstance(p, Boss) or isinstance(p, BossAttack) or isinstance(p, BLockDie)) \
                     and sprite.collide_mask(self, p):
                 self.die()
                 continue
 
             if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
-                if isinstance(p, Invisible_BLock):
+                if isinstance(p, InvisibleBLock):
                     continue
 
                 if isinstance(p, Flag):  # если пересакаемый блок - Flag
                     finish_level(user_name, level_num, coins)  # конец уровня
                     continue
 
-                if isinstance(p, Secret_BLock):  # если пересакаемый блок - Secret_BLock
+                if isinstance(p, SecretBLock):  # если пересакаемый блок - SecretBLock
                     p.hide()  # блок прячется
                     continue
 
@@ -520,12 +519,12 @@ class Hero(sprite.Sprite):
                     coins += 1
                     continue
 
-                if isinstance(p, Monster) or isinstance(p, Flying_Monster):
-                    # если пересакаемый блок- Monster или Flying_Monster
+                if isinstance(p, Monster) or isinstance(p, FlyingMonster):
+                    # если пересакаемый блок- Monster или FlyingMonster
                     if self.rect.bottom - 10 <= p.rect.top:
                         if isinstance(p, Monster):
                             sounds['death'].play()
-                        elif isinstance(p, Flying_Monster):
+                        elif isinstance(p, FlyingMonster):
                             sounds['flying_monster_dying'].play()
                         platforms.pop(platforms.index(p))
                         p.kill()
@@ -1031,11 +1030,11 @@ def level_run(levelnum: int) -> None:
                 pt = BLock(coord_x, coord_y, image)
                 platforms.append(pt)
             if level[y][x] == "_":
-                pt = Invisible_BLock(coord_x, coord_y)
+                pt = InvisibleBLock(coord_x, coord_y)
                 platforms.append(pt)
             if level[y][x] == ".":
                 image = load_image("block.png")
-                pt = Secret_BLock(coord_x, coord_y, image)
+                pt = SecretBLock(coord_x, coord_y, image)
                 platforms.append(pt)
             if level[y][x] == "*":
                 image = load_image("block_die.png")
@@ -1156,7 +1155,7 @@ def boss_level() -> None:
                 pt = BLock(coord_x, coord_y, image)
                 platforms.append(pt)
             if level[y][x] == "_":
-                pt = Invisible_BLock(coord_x, coord_y)
+                pt = InvisibleBLock(coord_x, coord_y)
                 platforms.append(pt)
 
     hero = Hero(playerX, playerY)
@@ -1197,7 +1196,7 @@ def boss_level() -> None:
                         line = 8
                     elif hero.rect.y > CELL_SIZE * 10 and hero.rect.y + hero.rect.width < CELL_SIZE * 15:
                         line = 10
-                    ba = Boss_Attack(boss.rect.x, line * CELL_SIZE)
+                    ba = BossAttack(boss.rect.x, line * CELL_SIZE)
                     boss_attacks.append(ba)
                     platforms.append(ba)
 
